@@ -10,14 +10,16 @@ BluetoothSerial SerialBT;
 // Serial Read / Write Settings
 std::list<String> read_buffer;
 std::list<String> write_buffer;
-int timeout_second = 2000;
+int timeout_ms = 2000;
 int async_sleep_time = 500;
 int rw_timer = 100;
+bool semaphore = 0;
 
 
 void initialize_bluetooth() {
     Serial.begin(115200);
     SerialBT.begin(115200);
+    // Create semaphore to hold async function to wait for another async function
 
     connect_bluetooth();
 
@@ -30,19 +32,14 @@ void connect_bluetooth() {
     while(!SerialBT.available()) {
         if (SerialBT.connected()) {
             is_connected = true;
-            if (!is_initialized) {
-                SerialBT.println("INITIALIZED_FALSE");
-            }
-            else {
-                SerialBT.println("INITIALIZED_TRUE");
-            }
+            SerialBT.println("BT_CONNECT_START");
         }
         delay(100);
     }
     // Main program logic starts here
     // Program should get initialization data confirm message
     String received_data = SerialBT.readStringUntil('\n');
-    if (received_data == "INITIALIZATION_COMPLETE") {
+    if (received_data == "BT_CONNECTED") {
         is_initialized = true;
         return;
     }
@@ -59,15 +56,19 @@ void data_transfer(void *pvParameters) {
             write_data();
 
             // Read data (with Timeout)
+            xTaskCreate(read_data, "ReadData", 2048, NULL, 5, NULL);
             
-            while (true) {
-                xTaskCreate(read_data, "ReadData", 2048, NULL, 5, NULL);
+            // Halt task until ReadData is complete
+            while (semaphore == 0)
+            {
+                vTaskDelay(pdMS_TO_TICKS(rw_timer));
             }
 
             vTaskDelay(pdMS_TO_TICKS(async_sleep_time));
+            semaphore = 0;
         }
         // If Bluetooth is disconnected, attempt to reconnect automatically
-
+        connect_bluetooth();
     }
     vTaskDelete(NULL);
 }
@@ -87,12 +88,29 @@ void write_data() {
 void read_data(void *pvParameters) {
     // Get the current tick count
     TickType_t start_time = xTaskGetTickCount();
-    // Check if the timeout has occured
-    if ((xTaskGetTickCount() - start_time) * portTICK_PERIOD_MS >= timeout_second) {
-        printf("TimeoutError: BT_CONNECTION_LOST");
-        is_connected = false;
-        return;
+    while (true) {
+        // Read data function
+        if (SerialBT.available()) {
+            String received_data = SerialBT.readStringUntil('\n');
+            // Filter out check signal
+            if (received_data != "BT_CONNECTION_IDLE") {
+                read_buffer.push_back(received_data);
+            }
+            semaphore = 1;
+            vTaskDelete(NULL);
+            return;
+        }
+
+        // Check if the timeout has occured
+        if ((xTaskGetTickCount() - start_time) * portTICK_PERIOD_MS >= timeout_ms) {
+            // printf("TimeoutError: BT_CONNECTION_LOST");
+            is_connected = false;
+            semaphore = 1;
+            vTaskDelete(NULL);
+            return;
+        }
+
+        // Wait before begin next read trial
+        vTaskDelay(pdMS_TO_TICKS(rw_timer));
     }
-    // Wait before begin next trial
-    vTaskDelay(pdMS_TO_TICKS(rw_timer));
 }
