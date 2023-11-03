@@ -2,7 +2,9 @@
 from enum import Enum
 
 # Flags for stopping and blocking threads
-
+class Flags:
+    None
+    
 # Status Enum for tracking status
 class StatusEnum(Enum):
     SLEEP = 0
