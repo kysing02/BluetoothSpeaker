@@ -3,7 +3,7 @@
 from gpiozero import Button
 from Status import Status, StatusEnum
 import threading
-
+from utils import bluetooth as bt
 # PIN Setups (For Simulating Gesture Sensor Purpose)
 btn1 = 5
 btn2 = 6
@@ -25,9 +25,16 @@ def main():
     # Initial Status
     Status.set_status(StatusEnum.WALLPAPER_FULL)
 
+    # Initial Utils
+    bt.initialize_bluetooth()
+
     # Set
-    # If there is input from bluetooth
+    while True:
+        comment, data = bt.receive_data()
+        # If there is input from bluetooth
+        if (comment != None):
         # Decode Bluetooth command
+
     # Else if there is sensor or button value
         # Change mode
     # End
