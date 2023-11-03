@@ -4,6 +4,7 @@ from gpiozero import Button
 from Status import Status, StatusEnum
 import threading
 from utils import bluetooth as bt
+from utils import display
 # PIN Setups (For Simulating Gesture Sensor Purpose)
 btn1 = 5
 btn2 = 6
@@ -27,14 +28,21 @@ def main():
 
     # Initial Utils
     bt.initialize_bluetooth()
+    display.initialize_display()
+    
 
     # Set
     while True:
-        comment, data = bt.receive_data()
+        # Part 1 - Check Bluetooth Incoming Data
+        command, data = bt.receive_data()
         # If there is input from bluetooth
-        if (comment != None):
-        # Decode Bluetooth command
-
-    # Else if there is sensor or button value
-        # Change mode
+        if (command != None):
+            decode_bluetooth_command(command, data)
+        
+        # Part 2 - Check for sensor or button
+            # Change mode
     # End
+
+def decode_bluetooth_command(command, data):
+    if command == bt.BluetoothCommands.CHANGE_WALLPAPER_1:
+        None
