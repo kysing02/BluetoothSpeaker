@@ -1,15 +1,14 @@
 import time
-import rgbmatrix
+import json
 import sys
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
+from rgbmatrix import RGBMatrix
+from utils import display
 
 # Set up the LED matrix
-options = rgbmatrix.RGBMatrixOptions()
-options.rows = 32
-options.cols = 64
-matrix = rgbmatrix.RGBMatrix(options=options)
+matrix = display.get_rgb_matrix()
 
 # Load and display the GIF on the left half of the matrix
 left_half_matrix = matrix.CreateFrameCanvas()
