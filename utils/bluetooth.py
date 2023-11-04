@@ -2,9 +2,12 @@ import bluetooth
 from enum import Enum
 
 class BluetoothCommands(Enum):
-    CHANGE_WALLPAPER_1 = 1
-    CHANGE_WALLPAPER_2 = 2
-    CHANGE_WALLPAPER_3 = 3
+    CHANGE_WALLPAPER_FULL_1 = 1
+    CHANGE_WALLPAPER_FULL_2 = 2
+    CHANGE_WALLPAPER_FULL_3 = 3
+    CHANGE_WALLPAPER_HALF_1 = 4
+    CHANGE_WALLPAPER_HALF_2 = 5
+    CHANGE_WALLPAPER_HALF_3 = 6
 
 client_socket = None
 def initialize_bluetooth():
