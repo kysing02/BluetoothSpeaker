@@ -1,16 +1,10 @@
 import time
-import json
-from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-from rgbmatrix import RGBMatrixOptions, RGBMatrix
+from utils import display
 
 # Set up the LED matrix
-config = json.load("config.json")
-options = RGBMatrixOptions()
-options.rows = config['display_rows']
-options.cols = config['display_columns']
-matrix = RGBMatrix(options=options)
+matrix = display.get_rgb_matrix()
 
 # Create a canvas for the right half of the matrix 
 matrix = matrix.CreateFrameCanvas()

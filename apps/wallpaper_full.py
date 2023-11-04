@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-import time
-import json
 import sys
-from rgbmatrix import RGBMatrix
 from PIL import Image
 from utils import display
 

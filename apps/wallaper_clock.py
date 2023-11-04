@@ -1,10 +1,8 @@
 import time
-import json
 import sys
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-from rgbmatrix import RGBMatrix
 from utils import display
 
 # Set up the LED matrix
