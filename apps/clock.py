@@ -1,11 +1,13 @@
 import time
+import asyncio
 from PIL import ImageDraw
 from PIL import ImageFont
 from utils import display
 
-def display_clock_full():
+async def display_clock(size="full"):
     '''
     Display clock.
+    size: Select what size to be displayed ("half" or "full")
     '''
     
     # Set up the LED matrix
@@ -15,11 +17,15 @@ def display_clock_full():
     matrix = matrix.CreateFrameCanvas()
 
     while True:
-        display_clock(matrix)
+        draw_clock(matrix, size)
         matrix = matrix.SwapOnVSync(matrix)
+        asyncio.sleep(0)
         
 # Create a function to display the clock on the right half
-def display_clock(canvas):
+def draw_clock(canvas, size):
     font = ImageFont.load_default()
     draw = ImageDraw.Draw(canvas)
-    draw.text((0, 16), time.strftime("%H:%M:%S"), fill=(255, 255, 255), font=font)
+    if size == "half":
+        draw.text((16, 16), time.strftime("%H:%M:%S"), fill=(255, 255, 255), font=font)
+    elif size == "full":
+        draw.text((32, 16), time.strftime("%H:%M:%S"), fill=(255, 255, 255), font=font)
