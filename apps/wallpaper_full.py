@@ -3,8 +3,13 @@ import sys
 from PIL import Image
 from utils import display
 
-def display_wallpaper(value):
-    image_file = "../images/wallpaper" + value + ".jpg"
+def display_wallpaper_full(value):
+    '''
+    Displays wallpaper with given arguments.
+    value: Select which wallpaper to be displayed (1-3)
+    '''
+    # TODO Add GIF Cycle Mode
+    image_file = "../images/wallpapers/full/wallpaper" + value + ".gif"
 
     gif = Image.open(image_file)
 
@@ -13,7 +18,7 @@ def display_wallpaper(value):
     except Exception:
         sys.exit("provided image is not a gif")
 
-    # Configuration for the matrix
+    # Set up the LED matrix
     matrix = display.get_rgb_matrix()
 
     # Preprocess the gifs frames into canvases to improve playback performance
