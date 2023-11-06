@@ -109,7 +109,6 @@ def change_status(action):
             wallpaper.change_wallpaper(-1, "full")
             app_task = asyncio.create_task(wallpaper.display_wallpaper(0, "full"))
 
-        
     elif current_status == StatusEnum.CLOCK_FULL:
         if action == "g3":
             app_task.cancel()
