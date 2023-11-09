@@ -55,3 +55,5 @@ def receive_data():
         # Now command and data is completely received and ready to return
         # Only command is decoded, data is completely clean and remain unprocessed
         return command, data
+    
+# TODO: Bluetooth通信が来たら(もしくは通信が切断されたら)、main.pyのnofify_connection_change("disconnect")関数に知らせる
