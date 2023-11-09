@@ -3,8 +3,9 @@
 import asyncio
 from gpiozero import Button
 from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import GLib
 from Status import Status, StatusEnum
-from apps import wallpaper_clock, wallpaper, clock
+from apps import wallpaper_clock, wallpaper, clock, music
 from utils import bluetooth as bt
 from utils import display
 # PIN Setups (For Simulating Gesture Sensor Purpose)
@@ -17,11 +18,13 @@ btn6 = 26
 
 app_task = None
 bluetooth_monitor_task = None
+glib_task = None
 
 # Main process
 async def main():
     global app_task
     global bluetooth_monitor_task
+    global glib_task
     
     # Setup gesture as button (For Simulation only)
     g1 = Button(btn1)
@@ -38,6 +41,7 @@ async def main():
     # Monitor Bluetooth connection
     DBusGMainLoop(set_as_default=True)
     bluetooth_monitor_task = asyncio.create_task(bt.monitor_bluetooth_connection())
+    glib_task = asyncio.to_thread(music.glib_mainloop_task)
     
     # Initial Utils
     bt.initialize_bluetooth()
@@ -119,9 +123,24 @@ def change_status(action):
 
     elif current_status == StatusEnum.CLOCK_FULL:
         if action == "g3":
+            Status.set_status(StatusEnum.WALLPAPER_CLOCK)
             app_task.cancel()
             wallpaper_clock.display_wallpaper_clock(0)
 
+    elif current_status == StatusEnum.MUSIC:
+        if action == "g2":
+            # Previous Song
+            pass
+        elif action == "g3":
+            # Next Song
+            pass
+        elif action == "g5":
+            Status.set_status(StatusEnum.WALLPAPER_CLOCK)
+            app_task.cancel()
+            wallpaper_clock.display_wallpaper_clock(0)
+        elif action == "g6":
+            music.play_pause_media()
+            
 def notify_bluetooth_status(status):
     if status == "Connected":
         print("System: Bluetooth is connected.")
