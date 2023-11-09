@@ -1,54 +1,46 @@
-#!/usr/bin/env python
-import time
-import sys
+from PIL import Image, ImageSequence
 
-from rgbmatrix import RGBMatrix, RGBMatrixOptions
-from PIL import Image
+def resize_image(input_path, output_path, new_size):
+    """
+    Resize an image.
 
-gif = Image.open("image_file.gif")
+    Parameters:
+    - input_path: Path to the input image file.
+    - output_path: Path to save the resized file.
+    - new_size: Tuple containing the new width and height (width, height)
+    """
+    original_image = Image.open(input_path)
+    resized_image = original_image.resize(new_size)
+    
+    resized_image.save(output_path)
 
-try:
-    num_frames = gif.n_frames
-except Exception:
-    sys.exit("provided image is not a gif")
+def resize_gif(input_path, output_path, new_size):
+    """
+    Resize a GIF.
 
+    Parameters:
+    - input_path: Path to the input GIF file.
+    - output_path: Path to save the resized GIF.
+    - new_size: Tuple containing the new width and height (width, height)
+    """
+    original_gif = Image.open(input_path)
 
-# Configuration for the matrix
-options = RGBMatrixOptions()
-options.rows = 32
-options.cols = 64
-options.chain_length = 1
-options.parallel = 1
-options.hardware_mapping = 'regular'  # If you have an Adafruit HAT: 'adafruit-hat'
+    resized_frames = []
 
-matrix = RGBMatrix(options = options)
+    # Resize each frame and append to the list
+    for frame in ImageSequence.Iterator(original_gif):
+        resized_frame = frame.resize(new_size)
+        resized_frames.append(resized_frame)
 
-# Preprocess the gifs frames into canvases to improve playback performance
-canvases = []
-print("Preprocessing gif, this may take a moment depending on the size of the gif...")
-for frame_index in range(0, num_frames):
-    gif.seek(frame_index)
-    # must copy the frame out of the gif, since thumbnail() modifies the image in-place
-    frame = gif.copy()
-    frame.thumbnail((matrix.width, matrix.height), Image.ANTIALIAS)
-    canvas = matrix.CreateFrameCanvas()
-    canvas.SetImage(frame.convert("RGB"))
-    canvases.append(canvas)
-# Close the gif file to save memory now that we have copied out all of the frames
-gif.close()
+    # Save the resized GIF
+    resized_gif = Image.new('RGB', new_size)
+    resized_gif.info = original_gif.info
 
-print("Completed Preprocessing, displaying gif")
+    resized_gif.save(
+        output_path,
+        save_all=True,
+        append_images=resized_frames,
+        disposal=1)
 
-try:
-    print("Press CTRL-C to stop.")
-
-    # Infinitely loop through the gif
-    cur_frame = 0
-    while(True):
-        matrix.SwapOnVSync(canvases[cur_frame], framerate_fraction=10)
-        if cur_frame == num_frames - 1:
-            cur_frame = 0
-        else:
-            cur_frame += 1
-except KeyboardInterrupt:
-    sys.exit(0)
+if __name__ == "__main__":
+    resize_gif("test/test_input.gif", "test/test_output.gif", (32, 32))
