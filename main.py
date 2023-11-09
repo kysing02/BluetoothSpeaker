@@ -11,8 +11,8 @@ btn1 = 5
 btn2 = 6
 btn3 = 13
 btn4 = 19
-btn5 = None
-btn6 = None
+btn5 = 0
+btn6 = 26
 
 app_task = None
 
@@ -73,7 +73,8 @@ def change_status(action):
     "g1" "g2" "g3" "g4" "g5" "g6"
     '''
     global app_task
-    
+    # DEBUG
+    print("Button pressed: " + str(action))
     # Check current status
     current_status = Status.get_status()
     
