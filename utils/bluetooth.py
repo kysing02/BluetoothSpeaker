@@ -16,7 +16,7 @@ rfcomm_client_socket = None
 a2dp_client_socket = None
 avrcp_client_socket = None
 
-server_address = "XX:XX:XX:XX:XX:XX"
+server_address = "B8:27:EB:17:71:AF"
 
 def initialize_bluetooth():
     global rfcomm_client_socket

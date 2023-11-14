@@ -13,7 +13,7 @@ def play_pause_media():
     session_bus = dbus.SessionBus()
     macos_device = "org.bluez.MediaControl1"
     # Replace with macOS device MAC Address
-    player = "/org/bluez/hci0/dev_XX_XX_XX_XX_XX_XX/player0"
+    player = "/org/bluez/hci0/dev_3C_22_FB_9D_ED_76/player0"
 
     obj = session_bus.get_object(macos_device, player)
     interface = dbus.Interface(obj, "org.bluez.MediaControl1")
@@ -21,11 +21,12 @@ def play_pause_media():
     interface.PlayPause()
     print("Play Pause")
 
+# TODO Show media Image after saving cover art
 def show_media_image():
     session_bus = dbus.SessionBus()
     macos_device = "org.bluez.MediaControl1"
     # Replace with macOS device MAC Address
-    player = "/org/bluez/hci0/dev_XX_XX_XX_XX_XX_XX/player0"
+    player = "/org/bluez/hci0/dev_3C_22_FB_9D_ED_76/player0"
 
     obj = session_bus.get_object(macos_device, player)
     interface = dbus.Interface(obj, "org.bluez.MediaControl1")
