@@ -16,7 +16,7 @@ async def display_wallpaper(value=0, size="full"):
     value: Select which wallpaper to be displayed (0-3). Select 0 for cached value.
     size: Select what size to be displayed ("half" or "full")
     '''
-
+    print("Displaying wallpaper...")
     # Check input
     if (size == "half"):
         # If cached wallpaper is selected
@@ -78,6 +78,7 @@ def change_wallpaper(value, size="full"):
     '''
     Change wallpaper to be displayed. Set 1 to show next wallpaper or -1 to show previous wallpaper next time display_wallpaper() is invoked.
     '''
+    print("Wallpaper changed")
     if size == "full":
         current_full_image = (current_full_image + value) % 3
         if current_full_image == 0:

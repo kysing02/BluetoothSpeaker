@@ -9,7 +9,8 @@ async def display_clock(size="full"):
     Display clock.
     size: Select what size to be displayed ("half" or "full")
     '''
-    
+    print("Displaying clock...")
+
     # Set up the LED matrix
     matrix = display.get_rgb_matrix()
 

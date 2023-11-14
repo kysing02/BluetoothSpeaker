@@ -19,6 +19,7 @@ def play_pause_media():
     interface = dbus.Interface(obj, "org.bluez.MediaControl1")
 
     interface.PlayPause()
+    print("Play Pause")
 
 def show_media_image():
     session_bus = dbus.SessionBus()
