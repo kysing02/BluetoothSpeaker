@@ -64,6 +64,7 @@ async def main():
         await asyncio.sleep(0.1)
 
 def decode_bluetooth_command(command, data):
+    print("Bluetooth Command Received: " + str(command))
     if command == bt.BluetoothCommands.CHANGE_WALLPAPER_FULL_1:
         wallpaper.save_wallpaper(1, "full", data)
     elif command == bt.BluetoothCommands.CHANGE_WALLPAPER_FULL_2:
