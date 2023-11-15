@@ -13,15 +13,10 @@ class BluetoothCommands(Enum):
     CHANGE_WALLPAPER_HALF_3 = 6
 
 rfcomm_client_socket = None
-a2dp_client_socket = None
-avrcp_client_socket = None
-
 server_address = "B8:27:EB:17:71:AF"
 
 def initialize_bluetooth():
     global rfcomm_client_socket
-    global a2dp_client_socket
-    global avrcp_client_socket
     
     # 1. Set up a Bluetooth server socket (RFCOMM)
     rfcomm_server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
@@ -34,26 +29,6 @@ def initialize_bluetooth():
 
     # Set recv() so that it wont block
     rfcomm_client_socket.setblocking(0)
-
-
-    # 2. Set up a Bluetooth server socket (A2DP)
-    a2dp_server_socket = bluetooth.BluetoothSocket(bluetooth.A2DP)
-    a2dp_server_socket.bind(("", bluetooth.A2DP_PSM))
-    a2dp_server_socket.listen(2)
-
-    print(f"Waiting for Bluetooth A2DP connection...")
-    a2dp_client_socket , ad2p_client_info = a2dp_server_socket.accept()
-    print(f"Accepted connection from {ad2p_client_info}")
-
-
-    # 3. Set up a Bluetooth server socket (AVRCP)
-    avrcp_server_socket = bluetooth.BluetoothSocket(bluetooth.AVRCP_TARGET)
-    avrcp_server_socket.bind(("", bluetooth.AVRCP_PSM))
-    avrcp_server_socket.listen(3)
-
-    print(f"Waiting for Bluetooth AVRCP connection...")
-    avrcp_client_socket , avrcp_client_info = avrcp_server_socket.accept()
-    print(f"Accepted connection from {avrcp_client_info}")
 
 def receive_data(): 
     # Try to get a chunk of data
