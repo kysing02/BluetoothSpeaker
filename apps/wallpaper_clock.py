@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0, '/home/student/BluetoothSpeaker')
 import time
 import sys
 import asyncio
