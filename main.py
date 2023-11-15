@@ -36,7 +36,7 @@ async def main():
     
     # Initial Status
     Status.set_status(StatusEnum.WALLPAPER_CLOCK)
-    app_task = asyncio.create_task(wallpaper_clock.display_wallpaper_clock())
+    app_task = asyncio.create_task(wallpaper_clock.display_wallpaper_clock(0))
 
     # Monitor Bluetooth connection
     DBusGMainLoop(set_as_default=True)
