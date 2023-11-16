@@ -43,7 +43,8 @@ async def main():
     bluetooth_monitor_task = asyncio.create_task(bt.monitor_bluetooth_connection())
     #glib_task = asyncio.to_thread(music.glib_mainloop_task)
     threading.Thread(target=music.glib_mainloop_task).start()
-
+    threading.Thread(target=check_bluetooth_data).start()
+    
     # Initial Utils
     bt.initialize_bluetooth()
     display.initialize_display()
@@ -55,14 +56,16 @@ async def main():
     g4.when_activated = lambda : change_status("g4")
     g5.when_activated = lambda : change_status("g5")
     g6.when_activated = lambda : change_status("g6")
-    
-    # Check Bluetooth Incoming Data
+       
+    await asyncio.sleep(1)
+
+# Check Bluetooth Incoming Data
+def check_bluetooth_data():
     while True:
         command, data = bt.receive_data()
         # If there is input from bluetooth
         if (command != None):
             decode_bluetooth_command(command, data)
-        await asyncio.sleep(1)
 
 def decode_bluetooth_command(command, data):
     print("Bluetooth Command Received: " + str(command))
