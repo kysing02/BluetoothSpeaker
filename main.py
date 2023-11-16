@@ -44,7 +44,7 @@ async def main():
     #glib_task = asyncio.to_thread(music.glib_mainloop_task)
     threading.Thread(target=music.glib_mainloop_task).start()
     threading.Thread(target=check_bluetooth_data).start()
-    
+
     # Initial Utils
     bt.initialize_bluetooth()
     display.initialize_display()
@@ -152,4 +152,4 @@ def notify_bluetooth_status(status):
     elif status == "Disconnected":
         print("System: Bluetooth is disconnected.")
         
-asyncio.run_coroutine_threadsafe(main())
+asyncio.run(main())
