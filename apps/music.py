@@ -1,4 +1,5 @@
 import dbus
+from gi.repository import GLib
 # FOR DEBUG ONLY
 from PIL import Image
 import io

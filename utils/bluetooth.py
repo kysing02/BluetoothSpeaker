@@ -28,7 +28,7 @@ def initialize_bluetooth():
     print(f"Accepted connection from {rfcomm_client_info}")
 
     # Set recv() so that it wont block
-    rfcomm_client_socket.setblocking(0)
+    # rfcomm_client_socket.setblocking(0)
 
 def receive_data(): 
     # Try to get a chunk of data

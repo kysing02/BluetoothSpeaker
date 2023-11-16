@@ -1,6 +1,6 @@
 # Raspberry Pi Logic
 # Team 01
-import asyncio
+import asyncio, threading
 from gpiozero import Button
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
@@ -41,8 +41,9 @@ async def main():
     # Monitor Bluetooth connection
     DBusGMainLoop(set_as_default=True)
     bluetooth_monitor_task = asyncio.create_task(bt.monitor_bluetooth_connection())
-    glib_task = asyncio.to_thread(music.glib_mainloop_task)
-    
+    #glib_task = asyncio.to_thread(music.glib_mainloop_task)
+    threading.Thread(target=music.glib_mainloop_task).start()
+
     # Initial Utils
     bt.initialize_bluetooth()
     display.initialize_display()
@@ -61,7 +62,7 @@ async def main():
         # If there is input from bluetooth
         if (command != None):
             decode_bluetooth_command(command, data)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
 def decode_bluetooth_command(command, data):
     print("Bluetooth Command Received: " + str(command))
@@ -148,4 +149,4 @@ def notify_bluetooth_status(status):
     elif status == "Disconnected":
         print("System: Bluetooth is disconnected.")
         
-asyncio.run(main())
+asyncio.run_coroutine_threadsafe(main())

@@ -14,7 +14,7 @@ async def display_wallpaper_clock(value):
     Displays wallpaper + clock with given arguments.
     value: Select which wallpaper to be displayed (0-3). Select 0 for cached value
     '''
-    asyncio.run(combine_wallpaper_clock_task(value))
+    asyncio.create_task(combine_wallpaper_clock_task(value))
     await asyncio.sleep(0)
 
 async def combine_wallpaper_clock_task(value):
