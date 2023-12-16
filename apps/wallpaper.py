@@ -79,6 +79,9 @@ def change_wallpaper(value, size="full"):
     '''
     Change wallpaper to be displayed. Set 1 to show next wallpaper or -1 to show previous wallpaper next time display_wallpaper() is invoked.
     '''
+    global current_full_image
+    global current_half_image
+
     print("Wallpaper changed")
     if size == "full":
         current_full_image = (current_full_image + value) % 3
