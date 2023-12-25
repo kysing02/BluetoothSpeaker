@@ -1,155 +1,271 @@
-# Raspberry Pi Logic
+# Raspberry Pi Logic (Mainly AVRCP control)
 # Team 01
-import asyncio, threading
 from gpiozero import Button
-from dbus.mainloop.glib import DBusGMainLoop
-from gi.repository import GLib
 from Status import Status, StatusEnum
-from apps import wallpaper_clock, wallpaper, clock, music
-from utils import bluetooth as bt
-from utils import display
-# PIN Setups (For Simulating Gesture Sensor Purpose)
-btn1 = 5
-btn2 = 6
-btn3 = 13
-btn4 = 19
-btn5 = 0
-btn6 = 26
+import arduino_control
 
-app_task = None
-bluetooth_monitor_task = None
-glib_task = None
+import dbus, dbus.mainloop.glib, sys
+from gi.repository import GLib
+import requests
+from PIL import Image
+
+import threading
+
+LASTFM_API_KEY = '69d8496cb54a33f47e7a38991f1eba9e'
+
+# PIN Setups (For Simulating Gesture Sensor Purpose)
+UP = 17
+DOWN = 27
+LEFT = 22
+RIGHT = 5
+CLOCKWISE = 6
+ANTICLOCKWISE = 26
+WAVE = 23
+
+# Music playback status
+playback_status = "stopped"
 
 # Main process
-async def main():
-    global app_task
-    global bluetooth_monitor_task
-    global glib_task
-    
+def main():
     # Setup gesture as button (For Simulation only)
-    g1 = Button(btn1)
-    g2 = Button(btn2)
-    g3 = Button(btn3)
-    g4 = Button(btn4)
-    g5 = Button(btn5)
-    g6 = Button(btn6)
+    up = Button(UP)
+    down = Button(DOWN)
+    left = Button(LEFT)
+    right = Button(RIGHT)
+    clockwise = Button(CLOCKWISE)
+    anticlockwise = Button(ANTICLOCKWISE)
+    wave = Button(WAVE)
     
     # Initial Status
-    Status.set_status(StatusEnum.WALLPAPER_CLOCK)
-    app_task = asyncio.create_task(wallpaper_clock.display_wallpaper_clock(0))
-
-    # Monitor Bluetooth connection
-    DBusGMainLoop(set_as_default=True)
-    bluetooth_monitor_task = asyncio.create_task(bt.monitor_bluetooth_connection())
-    #glib_task = asyncio.to_thread(music.glib_mainloop_task)
-    threading.Thread(target=music.glib_mainloop_task).start()
-    threading.Thread(target=check_bluetooth_data).start()
-
-    # Initial Utils
-    bt.initialize_bluetooth()
-    display.initialize_display()
+    arduino_control.change_status(StatusEnum.CLOCK)
 
     # Set sensor or button events
-    g1.when_activated = lambda : change_status("g1")
-    g2.when_activated = lambda : change_status("g2")
-    g3.when_activated = lambda : change_status("g3")
-    g4.when_activated = lambda : change_status("g4")
-    g5.when_activated = lambda : change_status("g5")
-    g6.when_activated = lambda : change_status("g6")
-       
-    await asyncio.sleep(1)
+    up.when_activated = lambda : change_status("up")
+    down.when_activated = lambda : change_status("down")
+    left.when_activated = lambda : change_status("left")
+    right.when_activated = lambda : change_status("right")
+    clockwise.when_activated = lambda : change_status("clockwise")
+    anticlockwise.when_activated = lambda : change_status("anticlockwise")
+    wave.when_activated = lambda : change_status("wave")
 
-# Check Bluetooth Incoming Data
-def check_bluetooth_data():
+    # AVRCP Setup
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    bus = dbus.SystemBus()
+    obj = bus.get_object('org.bluez', "/")
+    mgr = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
+    global player_iface, transport_prop_iface
+    player_iface = None
+    transport_prop_iface = None
+    for path, ifaces in mgr.GetManagedObjects().items():
+        if 'org.bluez.MediaPlayer1' in ifaces:
+            player_iface = dbus.Interface(
+                    bus.get_object('org.bluez', path),
+                    'org.bluez.MediaPlayer1')
+        elif 'org.bluez.MediaTransport1' in ifaces:
+            transport_prop_iface = dbus.Interface(
+                    bus.get_object('org.bluez', path),
+                    'org.freedesktop.DBus.Properties')
+    if not player_iface:
+        sys.exit('Error: Media Player not found.')
+    if not transport_prop_iface:
+        sys.exit('Error: DBus.Properties iface not found.')
+
+    bus.add_signal_receiver(
+            on_property_changed,
+            bus_name='org.bluez',
+            signal_name='PropertiesChanged',
+            dbus_interface='org.freedesktop.DBus.Properties')
+
+    # Create a thread for reading input
+    input_thread = threading.Thread(target=debug_read_input)
+
+    # Set the thread as a daemon so it will exit when the main program exits
+    input_thread.daemon = True
+
+    # Start the input thread
+    input_thread.start()
+
+    # Run the main loop
+    GLib.MainLoop().run()
+
+def debug_read_input():
     while True:
-        command, data = bt.receive_data()
-        # If there is input from bluetooth
-        if (command != None):
-            decode_bluetooth_command(command, data)
-
-def decode_bluetooth_command(command, data):
-    print("Bluetooth Command Received: " + str(command))
-    if command == bt.BluetoothCommands.CHANGE_WALLPAPER_FULL_1:
-        wallpaper.save_wallpaper(1, "full", data)
-    elif command == bt.BluetoothCommands.CHANGE_WALLPAPER_FULL_2:
-        wallpaper.save_wallpaper(2, "full", data)
-    elif command == bt.BluetoothCommands.CHANGE_WALLPAPER_FULL_3:
-        wallpaper.save_wallpaper(3, "full", data)
-    elif command == bt.BluetoothCommands.CHANGE_WALLPAPER_HALF_1:
-        wallpaper.save_wallpaper(1, "half", data)
-    elif command == bt.BluetoothCommands.CHANGE_WALLPAPER_HALF_2:
-        wallpaper.save_wallpaper(2, "half", data)
-    elif command == bt.BluetoothCommands.CHANGE_WALLPAPER_HALF_3:
-        wallpaper.save_wallpaper(3, "half", data)
-
+        signal_input = input("Enter gesture input: ")
+        change_status(signal_input)
+    
 def change_status(action):
     '''
     Change status when an input is detected.
-    action list:
-    "g1" "g2" "g3" "g4" "g5" "g6"
+    action list.
+    action: "up" "down" "left" "right" "clockwise" "anticlockwise" "wave"
     '''
-    global app_task
     # DEBUG
     print("Button pressed: " + str(action))
+    
     # Check current status
     current_status = Status.get_status()
     
-    if current_status == StatusEnum.WALLPAPER_CLOCK:
-        if action == "g2":
-            Status.set_status(StatusEnum.CLOCK_FULL)
-            app_task.cancel()
-            app_task = asyncio.create_task(clock.display_clock("full"))
+    if current_status == StatusEnum.CLOCK:
+        if action == "left":
+            arduino_control.change_status(StatusEnum.WALLPAPER_CLOCK)
+        elif action == "up":
+            arduino_control.change_status(StatusEnum.MUSIC)
             
-        elif action == "g3":
-            Status.set_status(StatusEnum.WALLPAPER_FULL)
-            app_task.cancel()
-            app_task = asyncio.create_task(wallpaper.display_wallpaper(0, "full"))
+    elif current_status == StatusEnum.WALLPAPER_CLOCK:
+        if action == "right":
+            arduino_control.change_status(StatusEnum.CLOCK)
+        elif action == "up":
+            arduino_control.change_status(StatusEnum.MUSIC)
 
-        elif action == "g5":
-            app_task.cancel()
-            wallpaper_clock.change_wallpaper(1)
-            app_task = asyncio.create_task(wallpaper_clock.display_wallpaper_clock(0))
+    elif current_status == StatusEnum.CLOCK:
+        if action == "down":
+            arduino_control.change_status(StatusEnum.get_persistent_status())
+        elif action == "right":
+            arduino_control.avrcp_commands()
 
-    elif current_status == StatusEnum.WALLPAPER_FULL:
-        if action == "g2":
-            Status.set_status(StatusEnum.WALLPAPER_CLOCK)
-            app_task.cancel()
-            app_task = asyncio.create_task(wallpaper_clock.display_wallpaper_clock(0))
+    if True: #any
+        if action == "wave":
+            playback_control("pp")
+        elif action == "clockwise":
+            playback_control("vol-up")
+        elif action == "anticlockwise":
+            playback_control("vol-down")
 
-        elif action == "g4":
-            app_task.cancel()
-            wallpaper.change_wallpaper(1, "full")
-            app_task = asyncio.create_task(wallpaper.display_wallpaper(0, "full"))
+# AVRCP Control
+def on_property_changed(interface, changed, invalidated):
+    global playback_status
+    if interface != 'org.bluez.MediaPlayer1':
+        return
+    for prop, value in changed.items():
+        if prop == 'Status':
+            print('Playback Status: {}'.format(value))
+            if (value == "playing"):
+                playback_status = value
+                arduino_control.avrcp_commands("play")
+            elif (value == "paused"):
+                playback_status = value
+                arduino_control.avrcp_commands("pause")
+            elif (value == "stopped"):
+                playback_status = value
+                arduino_control.avrcp_commands("stop")
+        elif prop == 'Track':
+            print('Music Info:')
+            for key in ('Title', 'Artist'):
+                print('   {}: {}'.format(key, value.get(key, '')))
+            cover_art = get_and_process_album_art(value.get('Artist', ''), value.get('Album', ''))
+            arduino_control.avrcp_commands("title", value.get('Title', ''))
+            arduino_control.avrcp_commands("artist", value.get('Artist', ''))
+            arduino_control.avrcp_commands("cover", str(cover_art))
+            print(str(cover_art))                   # Debug
 
-        elif action == "g5":
-            app_task.cancel()
-            wallpaper.change_wallpaper(-1, "full")
-            app_task = asyncio.create_task(wallpaper.display_wallpaper(0, "full"))
+def playback_control(command):
+    '''
+    Provide playback control for AVRCP
+    command: "play", "pause", "next", "prev", "vol-up", "vol-down", "pp"(playpause)
+    '''
+    str = command
+    if str.startswith('play'):
+        player_iface.Play()
+    elif str.startswith('pause'):
+        player_iface.Pause()
+    elif str.startswith('pp'):
+        if playback_status == "playing":
+            player_iface.Pause()
+        if playback_status == "paused":
+            player_iface.Play()
+    elif str.startswith('next'):
+        player_iface.Next()
+    elif str.startswith('prev'):
+        player_iface.Previous()
+    elif str.startswith('vol'):
+        currentVol = transport_prop_iface.Get(
+                'org.bluez.MediaTransport1',
+                'Volume')
+        addVol = 0
+        if (str == 'vol-up'):
+            addVol = 10
+        elif (str == 'vol-down'):
+            addVol = -10
+        newVol = clamp(currentVol + addVol, 0 , 127)
+        transport_prop_iface.Set(
+                'org.bluez.MediaTransport1',
+                'Volume',
+                dbus.UInt16(newVol))
+    return True
 
-    elif current_status == StatusEnum.CLOCK_FULL:
-        if action == "g3":
-            Status.set_status(StatusEnum.WALLPAPER_CLOCK)
-            app_task.cancel()
-            wallpaper_clock.display_wallpaper_clock(0)
+def get_and_process_album_art(artist, album):
+    if not artist or not album:
+        print('Cannot fetch album art without artist and album information.')
+        return None
 
-    elif current_status == StatusEnum.MUSIC:
-        if action == "g2":
-            # Previous Song
-            pass
-        elif action == "g3":
-            # Next Song
-            pass
-        elif action == "g5":
-            Status.set_status(StatusEnum.WALLPAPER_CLOCK)
-            app_task.cancel()
-            wallpaper_clock.display_wallpaper_clock(0)
-        elif action == "g6":
-            music.play_pause_media()
-            
-def notify_bluetooth_status(status):
-    if status == "Connected":
-        print("System: Bluetooth is connected.")
-    elif status == "Disconnected":
-        print("System: Bluetooth is disconnected.")
+    try:
+        response = requests.get(f'http://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key={LASTFM_API_KEY}&artist={artist}&album={album}&format=json')
+        data = response.json()
+        image_url = data.get('album', {}).get('image', [])[-1].get('#text', '')
+        print('Album Art URL:', image_url)
+
+        processed_image = process_image(image_url)
+
+        pixel_values = list(processed_image.getdata())
+        pixel_data = [int(value) for pixel in pixel_values for value in pixel if pixel.index(value) % 4 != 3]
+        compressed_data = convert_to_16_bit(pixel_data);
+        # Return the processed data ready to send
+        return compressed_data
+    
+    except Exception as e:
+        print('Error fetching or processing album art:', str(e))
+        return None
+
+def convert_to_16_bit(input_data):
+    # Check if the input has a valid length
+    if len(input_data) % 3 != 0:
+        raise ValueError("Input data length must be a multiple of 3 (representing RGB values).")
+
+    # Convert 8-bit RGB values to 16-bit RGB values
+    output_data = []
+    for i in range(0, len(input_data), 3):
+        r = input_data[i]
+        g = input_data[i + 1]
+        b = input_data[i + 2]
+
+        # Combine the three 8-bit values into a single 16-bit value (5 bits for red, 6 bits for green, 5 bits for blue)
+        rgb_16_bit = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
         
-asyncio.run(main())
+        output_data.append(rgb_16_bit)
+
+    return output_data
+
+def process_image(image_url):
+    if not image_url:
+        print('Image URL not available.')
+        return None
+
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        with open('album_art.jpg', 'wb') as f:
+            f.write(response.content)
+
+        # Open the downloaded image
+        original_image = Image.open('album_art.jpg')
+
+        # Resize the image to 64x32
+        resized_image = original_image.resize((64, 32))
+
+        # Convert the image to a bitmap (if needed)
+        bitmap_image = resized_image.convert("1")
+
+        return bitmap_image
+    else:
+        print('Failed to download image. Status Code:', response.status_code)
+        return None
+
+def clamp(n, minn, maxn):
+    return max(min(maxn, n), minn)
+
+if __name__ == "__main__":
+    main() 
+
+'''
+TODO
+1. To monitor bluetooth connection and establish auto reconnect feature, maybe use "Error" status from MediaPlayer1?
+'''
