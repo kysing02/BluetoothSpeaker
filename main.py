@@ -1,5 +1,3 @@
-# Raspberry Pi Logic (Mainly AVRCP control)
-# Team 01
 """
 Raspberry Piの制御メインプログラム。
 システム設計 1班
