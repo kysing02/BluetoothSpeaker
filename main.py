@@ -6,10 +6,19 @@ import arduino_control
 
 import dbus, dbus.mainloop.glib, sys
 from gi.repository import GLib
-import requests
 from PIL import Image
 
 import threading
+import time
+
+from urllib.parse import urlparse
+import argparse
+import requests
+import bs4
+import json
+
+URL = 'https://www.google.com/search?tbm=isch&q='
+HEADER = {'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
 
 LASTFM_API_KEY = '69d8496cb54a33f47e7a38991f1eba9e'
 
@@ -23,7 +32,13 @@ ANTICLOCKWISE = 26
 WAVE = 23
 
 # Music playback status
-playback_status = "stopped"
+playback_status = "None"
+keyboardCommand = ""
+
+# Cache song infos
+cacheTitle = "No Title"
+cacheArtist = "No Artist"
+cacheAlbum = "No Album"
 
 # Main process
 def main():
@@ -35,6 +50,9 @@ def main():
     clockwise = Button(CLOCKWISE)
     anticlockwise = Button(ANTICLOCKWISE)
     wave = Button(WAVE)
+    
+    # Initialize Connection with ESP32
+    arduino_control.initialize_connection()
     
     # Initial Status
     arduino_control.change_status(StatusEnum.CLOCK)
@@ -75,7 +93,7 @@ def main():
             bus_name='org.bluez',
             signal_name='PropertiesChanged',
             dbus_interface='org.freedesktop.DBus.Properties')
-
+    
     # Create a thread for reading input
     input_thread = threading.Thread(target=debug_read_input)
 
@@ -84,14 +102,17 @@ def main():
 
     # Start the input thread
     input_thread.start()
-
+    
     # Run the main loop
     GLib.MainLoop().run()
 
 def debug_read_input():
     while True:
-        signal_input = input("Enter gesture input: ")
-        change_status(signal_input)
+        global keyboardCommand
+        print("Enter gesture input: ")
+        keyboardCommand = input()
+        change_status(keyboardCommand)
+
     
 def change_status(action):
     '''
@@ -117,11 +138,13 @@ def change_status(action):
         elif action == "up":
             arduino_control.change_status(StatusEnum.MUSIC)
 
-    elif current_status == StatusEnum.CLOCK:
+    elif current_status == StatusEnum.MUSIC:
         if action == "down":
-            arduino_control.change_status(StatusEnum.get_persistent_status())
+            arduino_control.change_status(StatusEnum.CLOCK)
         elif action == "right":
-            arduino_control.avrcp_commands()
+            playback_control("prev")
+        elif action == "left":
+            playback_control("next")
 
     if True: #any
         if action == "wave":
@@ -134,6 +157,7 @@ def change_status(action):
 # AVRCP Control
 def on_property_changed(interface, changed, invalidated):
     global playback_status
+    global cacheAlbum, cacheArtist, cacheTitle
     if interface != 'org.bluez.MediaPlayer1':
         return
     for prop, value in changed.items():
@@ -150,13 +174,39 @@ def on_property_changed(interface, changed, invalidated):
                 arduino_control.avrcp_commands("stop")
         elif prop == 'Track':
             print('Music Info:')
-            for key in ('Title', 'Artist'):
+            for key in ('Title', 'Artist', 'Album'):
                 print('   {}: {}'.format(key, value.get(key, '')))
-            cover_art = get_and_process_album_art(value.get('Artist', ''), value.get('Album', ''))
-            arduino_control.avrcp_commands("title", value.get('Title', ''))
-            arduino_control.avrcp_commands("artist", value.get('Artist', ''))
-            arduino_control.avrcp_commands("cover", str(cover_art))
-            print(str(cover_art))                   # Debug
+            # Some device will send title and artist first before album
+            if value.get('Artist', '') != "" and cacheTitle != value.get('Title', ''):
+                arduino_control.avrcp_commands("artist", "Loading")
+            if value.get('Title', '') != "" and cacheTitle != value.get('Title', ''):
+                arduino_control.avrcp_commands("title", "  ")
+            #cacheAlbum = value.get('Album', '')
+            #if (cacheAlbum != ""):
+            #    cover_art = get_and_process_album_art(cacheArtist, cacheTitle)
+            #    if cover_art != None:
+            #        pixel_values = list(cover_art.getdata())
+            #        pixel_data = [int(value) for pixel in pixel_values for value in pixel if pixel.index(value) % 4 != 3]
+            #        cover_art = convert_to_16_bit(pixel_data);                
+            #    arduino_control.avrcp_commands("cover", str(cover_art))
+            #else:
+            #    arduino_control.avrcp_commands("cover")
+            if (value.get('Title', '') != "" and cacheTitle != value.get('Title', '')):
+                arduino_control.avrcp_commands("cover", None) # Clear previous cover art
+                cover_art = get_and_process_album_art_web(value.get('Title', ''), value.get('Artist', ''))
+                if cover_art != None:
+                    pixel_values = list(cover_art.getdata())
+                    pixel_data = [int(value) for pixel in pixel_values for value in pixel if pixel.index(value) % 4 != 3]
+                    cover_art = convert_to_16_bit(pixel_data)
+                    arduino_control.avrcp_commands("cover", str(cover_art))
+                else:
+                    arduino_control.avrcp_commands("cover")
+            if value.get('Artist', '') != "":
+                cacheArtist = value.get('Artist', '')
+                arduino_control.avrcp_commands("artist", value.get('Artist', ''))
+            if value.get('Title', '') != "":
+                cacheTitle = value.get('Title', '')
+                arduino_control.avrcp_commands("title", value.get('Title', ''))
 
 def playback_control(command):
     '''
@@ -169,9 +219,9 @@ def playback_control(command):
     elif str.startswith('pause'):
         player_iface.Pause()
     elif str.startswith('pp'):
-        if playback_status == "playing":
+        if playback_status == "playing" or playback_status == "None":
             player_iface.Pause()
-        if playback_status == "paused":
+        elif playback_status == "paused" or playback_status == "None":
             player_iface.Play()
     elif str.startswith('next'):
         player_iface.Next()
@@ -205,17 +255,50 @@ def get_and_process_album_art(artist, album):
         print('Album Art URL:', image_url)
 
         processed_image = process_image(image_url)
-
-        pixel_values = list(processed_image.getdata())
-        pixel_data = [int(value) for pixel in pixel_values for value in pixel if pixel.index(value) % 4 != 3]
-        compressed_data = convert_to_16_bit(pixel_data);
-        # Return the processed data ready to send
-        return compressed_data
+        return processed_image
     
     except Exception as e:
         print('Error fetching or processing album art:', str(e))
         return None
 
+def get_and_process_album_art_web(title, artist):
+    if title == '' or artist == '':
+        print('Cannot fetch album art without title and artist information.')
+        return None
+
+    title = '"' + '+'.join(title.split()) + '"'
+    artist = '"' + '+'.join(artist.split()) + '"'
+    res = requests.get(URL+'+'.join((title, artist)), headers=HEADER)
+    soup = bs4.BeautifulSoup(res.text, 'html.parser')
+    img_tags = soup.find_all('img')
+    image_url_list = [img['src'] for img in img_tags]
+    #print(image_url_list)
+    image_url = image_url_list[1]
+    
+    #meta_elements = soup.find_all("div", {"class": "rg_meta"})
+    #meta_dicts = (json.loads(e.text) for e in meta_elements)
+    #
+    #image_url = None
+    #
+    #for d in meta_dicts:
+    #    print("Getting meta_dicts")
+    #    if d['oh'] == d['ow']:
+    #        image_url = d['ou']
+    #        break
+    #
+    #if image_url != "" or image_url != None:
+    #    print('Album Art URL:', image_url)
+    #
+    ##parsed_url = urlparse(image_url)
+    
+    #res = requests.get(image_url)
+    #if res.status_code != 200:
+    #    print("Request failed")
+    #    return None
+    #print(res.content)
+    processed_image = process_image(image_url)
+    return processed_image
+    
 def convert_to_16_bit(input_data):
     # Check if the input has a valid length
     if len(input_data) % 3 != 0:
@@ -248,13 +331,12 @@ def process_image(image_url):
         # Open the downloaded image
         original_image = Image.open('album_art.jpg')
 
-        # Resize the image to 64x32
-        resized_image = original_image.resize((64, 32))
-
-        # Convert the image to a bitmap (if needed)
-        bitmap_image = resized_image.convert("1")
-
-        return bitmap_image
+        # Resize the image to 32x32
+        resized_image = original_image.resize((32, 32))
+        resized_image.convert("RGB")
+        resized_image.save("test.bmp")
+        
+        return resized_image
     else:
         print('Failed to download image. Status Code:', response.status_code)
         return None
