@@ -1,28 +1,39 @@
 # Raspberry Pi Logic (Mainly AVRCP control)
 # Team 01
+"""
+Raspberry Piの制御メインプログラム。
+システム設計 1班
+
+このメインプログラムでは、主に、デバイスとのAVRCP制御、ESP32との通信、およびジェスチャーセンサの入力を処理するためのメインプログラムである。
+"""
+# ジェスチャーセンサの代わりにボタンを使っている
 from gpiozero import Button
+
+# 他の自作プログラムをインポートする
 from Status import Status, StatusEnum
 import arduino_control
 
+# AVRCP制御用のライブラリ
 import dbus, dbus.mainloop.glib, sys
 from gi.repository import GLib
+
+# 読み取った画像を処理するためのライブラリ
+# インターネットから曲の画像を検索する→読み取った画像を32x32サイズと32ビットカラー(RGBA)にする→ESP32に画像を送信する
 from PIL import Image
 
+# コマンドラインの入力を処理するために使う
 import threading
-import time
 
+# インターネットから画像を検索してリンクを探すためのライブラリ
 from urllib.parse import urlparse
-import argparse
 import requests
 import bs4
-import json
 
+# 画像検索のためのURLテンプレート
 URL = 'https://www.google.com/search?tbm=isch&q='
 HEADER = {'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
 
-LASTFM_API_KEY = '69d8496cb54a33f47e7a38991f1eba9e'
-
-# PIN Setups (For Simulating Gesture Sensor Purpose)
+# ジェスチャーセンサの代わりに用いるPIN設置
 UP = 17
 DOWN = 27
 LEFT = 22
@@ -31,18 +42,17 @@ CLOCKWISE = 6
 ANTICLOCKWISE = 26
 WAVE = 23
 
-# Music playback status
+# 音楽再生ステータス "None", "stopped", "playing", "paused"
 playback_status = "None"
-keyboardCommand = ""
 
-# Cache song infos
+# Cache song infos（音楽情報のキャッシュ）
 cacheTitle = "No Title"
 cacheArtist = "No Artist"
 cacheAlbum = "No Album"
 
 # Main process
 def main():
-    # Setup gesture as button (For Simulation only)
+    # ジェスチャーセンサの代わりにボタンを用いてシミュレーションをする
     up = Button(UP)
     down = Button(DOWN)
     left = Button(LEFT)
@@ -51,13 +61,11 @@ def main():
     anticlockwise = Button(ANTICLOCKWISE)
     wave = Button(WAVE)
     
-    # Initialize Connection with ESP32
+    # 初期化する
     arduino_control.initialize_connection()
-    
-    # Initial Status
     arduino_control.change_status(StatusEnum.CLOCK)
 
-    # Set sensor or button events
+    # ボタンが押されたときのイベントのコールバック関数
     up.when_activated = lambda : change_status("up")
     down.when_activated = lambda : change_status("down")
     left.when_activated = lambda : change_status("left")
@@ -66,7 +74,7 @@ def main():
     anticlockwise.when_activated = lambda : change_status("anticlockwise")
     wave.when_activated = lambda : change_status("wave")
 
-    # AVRCP Setup
+    # AVRCPを初期化する
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
     obj = bus.get_object('org.bluez', "/")
@@ -88,42 +96,51 @@ def main():
     if not transport_prop_iface:
         sys.exit('Error: DBus.Properties iface not found.')
 
+    # AVRCPに音楽再生情報に変更が起こったとき、ラズパイに知らせる
     bus.add_signal_receiver(
             on_property_changed,
             bus_name='org.bluez',
             signal_name='PropertiesChanged',
             dbus_interface='org.freedesktop.DBus.Properties')
-    
-    # Create a thread for reading input
+
+    # Note: このプログラムでは二つのスレッドが同時に実行され、一つ目は入力処理のスレッド、もう一つはAVRCP通信用のスレッド
+       
+    # 入力を読み取るためのスレッドを設定する
     input_thread = threading.Thread(target=debug_read_input)
 
     # Set the thread as a daemon so it will exit when the main program exits
+    # スレッドをdaemonにして、メインプログラムが終了したときに自動的に退出する
     input_thread.daemon = True
 
-    # Start the input thread
+    # スレッドを開始する
     input_thread.start()
     
-    # Run the main loop
+    # AVRCPのループを開始する
     GLib.MainLoop().run()
 
 def debug_read_input():
+    """
+    コマンドラインにコマンドを入力して、デバッグを行う。
+    使えるコマンドは、ジェスチャーセンサと同じコマンドである。
+    
+    コマンド: "left" "right" "up" "down" "clockwise" "anticlockwise" "wave"
+    """
     while True:
-        global keyboardCommand
         print("Enter gesture input: ")
         keyboardCommand = input()
         change_status(keyboardCommand)
-
-    
+  
 def change_status(action):
-    '''
-    Change status when an input is detected.
-    action list.
-    action: "up" "down" "left" "right" "clockwise" "anticlockwise" "wave"
-    '''
-    # DEBUG
+    """
+    入力が検出されたとき、入力に応じて処理を行う。
+
+    Args:
+        action (str): "up" "down" "left" "right" "clockwise" "anticlockwise" "wave"
+    """
+    
     print("Button pressed: " + str(action))
     
-    # Check current status
+    # 今のステータスをチェック
     current_status = Status.get_status()
     
     if current_status == StatusEnum.CLOCK:
@@ -146,7 +163,8 @@ def change_status(action):
         elif action == "left":
             playback_control("next")
 
-    if True: #any
+    # 任意のステータス
+    if True:
         if action == "wave":
             playback_control("pp")
         elif action == "clockwise":
@@ -154,13 +172,17 @@ def change_status(action):
         elif action == "anticlockwise":
             playback_control("vol-down")
 
-# AVRCP Control
 def on_property_changed(interface, changed, invalidated):
+    """
+    音楽情報に変更があるときに、自動的に実行される。
+
+    """
     global playback_status
     global cacheAlbum, cacheArtist, cacheTitle
     if interface != 'org.bluez.MediaPlayer1':
         return
     for prop, value in changed.items():
+        # もし変更がステータスの場合
         if prop == 'Status':
             print('Playback Status: {}'.format(value))
             if (value == "playing"):
@@ -172,47 +194,51 @@ def on_property_changed(interface, changed, invalidated):
             elif (value == "stopped"):
                 playback_status = value
                 arduino_control.avrcp_commands("stop")
+
+        # もし変更が音楽情報の場合
         elif prop == 'Track':
+            # デバッグ
             print('Music Info:')
             for key in ('Title', 'Artist', 'Album'):
                 print('   {}: {}'.format(key, value.get(key, '')))
-            # Some device will send title and artist first before album
-            if value.get('Artist', '') != "" and cacheTitle != value.get('Title', ''):
+
+            # 変更されたタイトルとアーティスト
+            changedTitle = value.get('Title', '')
+            changedArtist = value.get('Artist', '')
+            
+            # Note: Some device will send title and artist first before album
+            # アルバムを送信する前に先にタイトルと作家を送信するデバイスもあるので、タイトルが空白のときの対策もしておく
+            if changedTitle != "" and cacheTitle != changedTitle:
+                # 手前の音楽情報を消す
                 arduino_control.avrcp_commands("artist", "Loading")
-            if value.get('Title', '') != "" and cacheTitle != value.get('Title', ''):
                 arduino_control.avrcp_commands("title", "  ")
-            #cacheAlbum = value.get('Album', '')
-            #if (cacheAlbum != ""):
-            #    cover_art = get_and_process_album_art(cacheArtist, cacheTitle)
-            #    if cover_art != None:
-            #        pixel_values = list(cover_art.getdata())
-            #        pixel_data = [int(value) for pixel in pixel_values for value in pixel if pixel.index(value) % 4 != 3]
-            #        cover_art = convert_to_16_bit(pixel_data);                
-            #    arduino_control.avrcp_commands("cover", str(cover_art))
-            #else:
-            #    arduino_control.avrcp_commands("cover")
-            if (value.get('Title', '') != "" and cacheTitle != value.get('Title', '')):
-                arduino_control.avrcp_commands("cover", None) # Clear previous cover art
-                cover_art = get_and_process_album_art_web(value.get('Title', ''), value.get('Artist', ''))
+                arduino_control.avrcp_commands("cover", None)
+
+                # 曲の画像を受け取る
+                cover_art = get_and_process_album_art_web(changedTitle, changedArtist)
                 if cover_art != None:
-                    pixel_values = list(cover_art.getdata())
-                    pixel_data = [int(value) for pixel in pixel_values for value in pixel if pixel.index(value) % 4 != 3]
-                    cover_art = convert_to_16_bit(pixel_data)
                     arduino_control.avrcp_commands("cover", str(cover_art))
                 else:
                     arduino_control.avrcp_commands("cover")
-            if value.get('Artist', '') != "":
-                cacheArtist = value.get('Artist', '')
-                arduino_control.avrcp_commands("artist", value.get('Artist', ''))
-            if value.get('Title', '') != "":
-                cacheTitle = value.get('Title', '')
-                arduino_control.avrcp_commands("title", value.get('Title', ''))
+
+            # 画像がアップロードされた後、音楽の情報を更新する
+            if changedArtist != "":
+                cacheArtist = changedArtist
+                arduino_control.avrcp_commands("artist", changedArtist)
+            if changedTitle != "":
+                cacheTitle = changedTitle
+                arduino_control.avrcp_commands("title", changedTitle)
 
 def playback_control(command):
-    '''
-    Provide playback control for AVRCP
-    command: "play", "pause", "next", "prev", "vol-up", "vol-down", "pp"(playpause)
-    '''
+    """
+    AVRCPコマンドを行い、デバイスの遠隔操作をする。
+
+    Args:
+        command (str): "play", "pause", "next", "prev", "vol-up", "vol-down", "pp" (playpause)
+
+    Returns:
+        bool: If success, True is returned.
+    """
     str = command
     if str.startswith('play'):
         player_iface.Play()
@@ -243,68 +269,63 @@ def playback_control(command):
                 dbus.UInt16(newVol))
     return True
 
-def get_and_process_album_art(artist, album):
-    if not artist or not album:
-        print('Cannot fetch album art without artist and album information.')
-        return None
-
-    try:
-        response = requests.get(f'http://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key={LASTFM_API_KEY}&artist={artist}&album={album}&format=json')
-        data = response.json()
-        image_url = data.get('album', {}).get('image', [])[-1].get('#text', '')
-        print('Album Art URL:', image_url)
-
-        processed_image = process_image(image_url)
-        return processed_image
-    
-    except Exception as e:
-        print('Error fetching or processing album art:', str(e))
-        return None
-
 def get_and_process_album_art_web(title, artist):
+    """
+    インターネットから画像を検索し、1番目の検索結果を画像処理を行い、16ビットカラーの画像データをリストとして返す。
+
+    Args:
+        title (str): Song title.
+        artist (str): Song artist.
+
+    Returns:
+        list: Image data in 16-bit format.
+    """
     if title == '' or artist == '':
         print('Cannot fetch album art without title and artist information.')
         return None
 
+    # 画像を検索する
     title = '"' + '+'.join(title.split()) + '"'
     artist = '"' + '+'.join(artist.split()) + '"'
     res = requests.get(URL+'+'.join((title, artist)), headers=HEADER)
     soup = bs4.BeautifulSoup(res.text, 'html.parser')
     img_tags = soup.find_all('img')
     image_url_list = [img['src'] for img in img_tags]
-    #print(image_url_list)
+
+    # Googleロゴを除く1番目の検索結果の画像URLを用いる
     image_url = image_url_list[1]
-    
-    #meta_elements = soup.find_all("div", {"class": "rg_meta"})
-    #meta_dicts = (json.loads(e.text) for e in meta_elements)
-    #
-    #image_url = None
-    #
-    #for d in meta_dicts:
-    #    print("Getting meta_dicts")
-    #    if d['oh'] == d['ow']:
-    #        image_url = d['ou']
-    #        break
-    #
-    #if image_url != "" or image_url != None:
-    #    print('Album Art URL:', image_url)
-    #
-    ##parsed_url = urlparse(image_url)
-    
-    #res = requests.get(image_url)
-    #if res.status_code != 200:
-    #    print("Request failed")
-    #    return None
-    #print(res.content)
+
+    # 画像を処理する
     processed_image = process_image(image_url)
-    return processed_image
+    if (processed_image is not None):
+        pixel_values = list(processed_image.getdata())
+        # 画像のデータはRGBAの32ビットカラーになっているため、まずはRGBの24ビットカラーに変換する
+        pixel_data = [int(value) for pixel in pixel_values for value in pixel if pixel.index(value) % 4 != 3]
+        cover_art = convert_to_16_bit(pixel_data)
+        return cover_art
+    else:
+        return None
     
 def convert_to_16_bit(input_data):
+    """
+    24ビットカラーを16ビットに変換する。
+
+    Args:
+        input_data (list): 24 bit color list.
+
+    Raises:
+        ValueError: Invalid value.
+
+    Returns:
+        list: 16 bit color list.
+    """
+    
     # Check if the input has a valid length
+    # 入力が正しい長さを持っているかを検査する
     if len(input_data) % 3 != 0:
         raise ValueError("Input data length must be a multiple of 3 (representing RGB values).")
 
-    # Convert 8-bit RGB values to 16-bit RGB values
+    # 8ビットRGBの値を16ビットRGBの値に変換する
     output_data = []
     for i in range(0, len(input_data), 3):
         r = input_data[i]
@@ -312,6 +333,7 @@ def convert_to_16_bit(input_data):
         b = input_data[i + 2]
 
         # Combine the three 8-bit values into a single 16-bit value (5 bits for red, 6 bits for green, 5 bits for blue)
+        # 三つの8ビットの値を一つの16ビットの値に統合させる (R: 5 bit, G: 6 bit, B: 5 bit)
         rgb_16_bit = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
         
         output_data.append(rgb_16_bit)
@@ -319,6 +341,14 @@ def convert_to_16_bit(input_data):
     return output_data
 
 def process_image(image_url):
+    """インターネットから画像URLを用いて画像をダウンロードしてから32x32に調整する。
+
+    Args:
+        image_url (str): URL of the image.
+
+    Returns:
+        Image: Resized image of size 32x32.
+    """
     if not image_url:
         print('Image URL not available.')
         return None
@@ -328,10 +358,10 @@ def process_image(image_url):
         with open('album_art.jpg', 'wb') as f:
             f.write(response.content)
 
-        # Open the downloaded image
+        # ダウンロードされた画像を開く
         original_image = Image.open('album_art.jpg')
 
-        # Resize the image to 32x32
+        # 画像のサイズを32x32に調整する
         resized_image = original_image.resize((32, 32))
         resized_image.convert("RGB")
         resized_image.save("test.bmp")
@@ -342,12 +372,19 @@ def process_image(image_url):
         return None
 
 def clamp(n, minn, maxn):
+    """
+    数字を範囲内に限定する
+
+    Args:
+        n (int): number
+        minn (int): minimum
+        maxn (int): maximum
+
+    Returns:
+        int: clamped
+    """
     return max(min(maxn, n), minn)
 
+# main()関数を呼び出す
 if __name__ == "__main__":
     main() 
-
-'''
-TODO
-1. To monitor bluetooth connection and establish auto reconnect feature, maybe use "Error" status from MediaPlayer1?
-'''
