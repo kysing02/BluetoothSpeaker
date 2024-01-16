@@ -227,8 +227,11 @@ def on_property_changed(interface, changed, invalidated):
                 cacheTitle = changedTitle
                 arduino_control.avrcp_commands("title", changedTitle)
 
-        elif prop == 'Connected':
-            print("Bluetooth Connection: " + value)
+    if 'Connected' in changed:
+        connected = changed['Connected']
+        if not connected:
+            print("Bluetooth device is disconnected.")
+            # You can add more actions here when the device is disconnected
 
 def playback_control(command):
     """
