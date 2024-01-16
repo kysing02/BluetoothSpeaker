@@ -845,6 +845,7 @@ void decodeCommands(){
       currentStatus = MUSIC;
       canvas->fillScreen(myBLACK);
     }
+    
     else if(command == '1'){
       // Bluetooth connection status
       bt_connection = Serial.readStringUntil('\n');
