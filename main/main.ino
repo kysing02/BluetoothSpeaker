@@ -44,6 +44,9 @@ Patterns patterns;
 const char* ssid = "Kys";
 const char* password = "kys20021110";
 
+// Bluetooth connection
+bool bluetooth_connected = false;
+
 // Clock
 const char* ntpServer = "pool.ntp.org";
 
@@ -154,6 +157,11 @@ void setup() {
   }
   Serial.println("Connected to WiFi");
 
+  while (!bluetooth_connected) {
+    delay(1000);
+    decodeCommands();
+  }
+
   // Initialize NTP
   configTime(9 * 3600, 0, ntpServer);
   setTime(12, 0, 0, 1, 1, 1970);          // set initial time (time before NTP time is get)
@@ -208,9 +216,20 @@ void loop() {
 //  }
   decodeCommands();
   if (currentStatus == MUSIC){
-    scrollText();
-    showPlayPauseButton();
-    canvas->drawRGBBitmap(0, 0, image_array, 32, 32);
+    if (!bluetooth_connected) {
+      dma_display->setFont(&Org_01);
+      dma_display->setTextSize(1);
+      dma_display->setTextColor(myRED);
+      dma_display->setCursor(1, 18);
+      dma_display->println("Bluetooth");
+      dma_display->setCursor(32, 26);
+      dma_display->println("OFF");
+    }
+    else {
+      scrollText();
+      showPlayPauseButton();
+      canvas->drawRGBBitmap(0, 0, image_array, 32, 32);
+    }
   }
   else if (currentStatus == CLOCK){
     playAuroraPattern();
@@ -825,6 +844,16 @@ void decodeCommands(){
       // Change status MUSIC
       currentStatus = MUSIC;
       canvas->fillScreen(myBLACK);
+    }
+    else if(command == '1'){
+      // Bluetooth connection status
+      bt_connection = Serial.readStringUntil('\n');
+      if (bt_connection == '0'){
+        bluetooth_connected = false
+      }
+      elif (bt_connection == '1'){
+        bluetooth_connected = true
+      }
     }
     else if(command == '2'){
       // AVRCP - Pause
