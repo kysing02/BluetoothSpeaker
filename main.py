@@ -94,6 +94,15 @@ def main():
     if not transport_prop_iface:
         sys.exit('Error: DBus.Properties iface not found.')
 
+    # Connect to the PropertyChanged signal for the Adapter1 interface
+    adapter = bus.get_object('org.bluez', '/org/bluez/hci0')  # Adjust the path as needed
+    adapter_iface = dbus.Interface(adapter, 'org.freedesktop.DBus.Properties')
+    adapter_iface.connect_to_signal("PropertiesChanged", on_adapter_property_changed)
+
+     # Connect to the AdapterRemoved signal to detect disconnection
+    bus.subscribe(iface="org.freedesktop.DBus.ObjectManager", signal="InterfacesRemoved", object='/org/bluez/hci0', arg0="org.freedesktop.DBus.Properties", signal_fired=on_adapter_disconnected)
+
+        
     # AVRCPに音楽再生情報に変更が起こったとき、ラズパイに知らせる
     bus.add_signal_receiver(
             on_property_changed,
@@ -226,6 +235,16 @@ def on_property_changed(interface, changed, invalidated):
             if changedTitle != "":
                 cacheTitle = changedTitle
                 arduino_control.avrcp_commands("title", changedTitle)
+
+def on_adapter_property_changed(interface, changed, invalidated):
+    if 'Powered' in changed:
+        powered = changed['Powered']
+        if not powered:
+            print("Bluetooth adapter is powered off.")
+            # You can add more actions here when the adapter is powered off
+            
+def on_adapter_disconnected():
+    print("Bluetooth adapter is disconnected.")
 
 def playback_control(command):
     """
