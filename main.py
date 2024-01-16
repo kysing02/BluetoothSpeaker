@@ -99,9 +99,13 @@ def main():
     adapter_iface = dbus.Interface(adapter, 'org.freedesktop.DBus.Properties')
     adapter_iface.connect_to_signal("PropertiesChanged", on_adapter_property_changed)
 
-     # Connect to the AdapterRemoved signal to detect disconnection
-    bus.subscribe(iface="org.freedesktop.DBus.ObjectManager", signal="InterfacesRemoved", object='/org/bluez/hci0', arg0="org.freedesktop.DBus.Properties", signal_fired=on_adapter_disconnected)
-
+    # Connect to the AdapterRemoved signal to detect disconnection
+    #bus.subscribe(object='/org/bluez/hci0', arg0="org.freedesktop.DBus.Properties")
+    bus.add_signal_receiver(
+            on_adapter_disconnected,
+            bus_name='org.bluez',
+            signal_name='InterfacesRemoved',
+            dbus_interface='org.freedesktop.DBus.Properties')
         
     # AVRCPに音楽再生情報に変更が起こったとき、ラズパイに知らせる
     bus.add_signal_receiver(
@@ -242,7 +246,7 @@ def on_adapter_property_changed(interface, changed, invalidated):
         if not powered:
             print("Bluetooth adapter is powered off.")
             # You can add more actions here when the adapter is powered off
-            
+
 def on_adapter_disconnected():
     print("Bluetooth adapter is disconnected.")
 
