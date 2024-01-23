@@ -5,7 +5,7 @@ Raspberry Piの制御メインプログラム。
 このメインプログラムでは、主に、デバイスとのAVRCP制御、ESP32との通信、およびジェスチャーセンサの入力を処理するためのメインプログラムである。
 """
 # ジェスチャーセンサの代わりにボタンを使っている
-from gpiozero import Button
+# from gpiozero import Button
 from grove_gesture_sensor import gesture
 
 # 他の自作プログラムをインポートする
@@ -33,13 +33,13 @@ URL = 'https://www.google.com/search?tbm=isch&q='
 HEADER = {'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
 
 # ジェスチャーセンサの代わりに用いるPIN設置
-UP = 17
-DOWN = 27
-LEFT = 22
-RIGHT = 5
-CLOCKWISE = 6
-ANTICLOCKWISE = 26
-WAVE = 23
+# UP = 17
+# DOWN = 27
+# LEFT = 22
+# RIGHT = 5
+# CLOCKWISE = 6
+# ANTICLOCKWISE = 26
+# WAVE = 23
 
 # 音楽再生ステータス "None", "stopped", "playing", "paused"
 playback_status = "None"
@@ -52,26 +52,26 @@ cacheAlbum = "No Album"
 # Main process
 def main():
     # ジェスチャーセンサの代わりにボタンを用いてシミュレーションをする
-    up = Button(UP)
-    down = Button(DOWN)
-    left = Button(LEFT)
-    right = Button(RIGHT)
-    clockwise = Button(CLOCKWISE)
-    anticlockwise = Button(ANTICLOCKWISE)
-    wave = Button(WAVE)
+    # up = Button(UP)
+    # down = Button(DOWN)
+    # left = Button(LEFT)
+    # right = Button(RIGHT)
+    # clockwise = Button(CLOCKWISE)
+    # anticlockwise = Button(ANTICLOCKWISE)
+    # wave = Button(WAVE)
     
     # 初期化する
     arduino_control.initialize_connection()
     arduino_control.change_status(StatusEnum.CLOCK)
 
     # ボタンが押されたときのイベントのコールバック関数
-    up.when_activated = lambda : change_status("up")
-    down.when_activated = lambda : change_status("down")
-    left.when_activated = lambda : change_status("left")
-    right.when_activated = lambda : change_status("right")
-    clockwise.when_activated = lambda : change_status("clockwise")
-    anticlockwise.when_activated = lambda : change_status("anticlockwise")
-    wave.when_activated = lambda : change_status("wave")
+    # up.when_activated = lambda : change_status("up")
+    # down.when_activated = lambda : change_status("down")
+    # left.when_activated = lambda : change_status("left")
+    # right.when_activated = lambda : change_status("right")
+    # clockwise.when_activated = lambda : change_status("clockwise")
+    # anticlockwise.when_activated = lambda : change_status("anticlockwise")
+    # wave.when_activated = lambda : change_status("wave")
 
     # AVRCPを初期化する
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
