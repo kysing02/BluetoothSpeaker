@@ -6,6 +6,7 @@ Raspberry Piの制御メインプログラム。
 """
 # ジェスチャーセンサの代わりにボタンを使っている
 from gpiozero import Button
+from grove_gesture_sensor import gesture
 
 # 他の自作プログラムをインポートする
 from Status import Status, StatusEnum
@@ -115,6 +116,10 @@ def main():
     
     # AVRCPのループを開始する
     GLib.MainLoop().run()
+
+    # ジェスチャセンサーを初期化する
+    g = gesture()
+    g.init()
 
 def debug_read_input():
     """
