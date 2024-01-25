@@ -28,6 +28,12 @@ from urllib.parse import urlparse
 import requests
 import bs4
 
+# 音量操作モジュール
+import alsaaudio
+
+# 音量操作
+initial_volume = 30         #初期音量
+
 # 画像検索のためのURLテンプレート
 URL = 'https://www.google.com/search?tbm=isch&q='
 HEADER = {'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
@@ -101,9 +107,19 @@ def main():
             bus_name='org.bluez',
             signal_name='PropertiesChanged',
             dbus_interface='org.freedesktop.DBus.Properties')
-
+    
+    # 音量操作初期化
+    global mixer
+    mixer = alsaaudio.Mixer(control='Master')
+    mixer.setvolume(initial_volume)
+    
     # Note: このプログラムでは二つのスレッドが同時に実行され、一つ目は入力処理のスレッド、もう一つはAVRCP通信用のスレッド
-       
+     
+    # ジェスチャセンサーを初期化する
+    g = gesture()
+    g.init()
+    g.when_activated = lambda x : change_status(x)
+    
     # 入力を読み取るためのスレッドを設定する
     input_thread = threading.Thread(target=debug_read_input)
 
@@ -116,10 +132,6 @@ def main():
     
     # AVRCPのループを開始する
     GLib.MainLoop().run()
-
-    # ジェスチャセンサーを初期化する
-    g = gesture()
-    g.init()
 
 def debug_read_input():
     """
@@ -276,6 +288,16 @@ def playback_control(command):
                 'org.bluez.MediaTransport1',
                 'Volume',
                 dbus.UInt16(newVol))
+        currentLocalVol = mixer.getvolume()[0]
+        print("currentLocalVol: " , currentLocalVol);
+        addLocalVol = 0
+        if (str == 'vol-up'):
+            addLocalVol = 5
+        elif (str == 'vol-down'):
+            addLocalVol = -5
+        newLocalVol = clamp(currentLocalVol + addLocalVol, 0 , 80)
+        print("Local vol set:" , newLocalVol)
+        mixer.setvolume(newLocalVol)
     return True
 
 def get_and_process_album_art_web(title, artist):

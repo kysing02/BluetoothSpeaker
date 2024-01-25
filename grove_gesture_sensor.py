@@ -102,7 +102,7 @@ class gesture:
     #Initialize the sensors
     def init(self):
         #Self defined class properties
-        self.when_activated = lambda : None
+        self.when_activated = lambda x : None
 
         time.sleep(.001)
         self.paj7620SelectBank(self.BANK0)
@@ -126,6 +126,7 @@ class gesture:
         print("Paj7620 initialize register finished.")
 
         self.thread = threading.Thread(target=self.inputThread)
+        self.thread.start()
 
     def inputThread(self):
         while True:

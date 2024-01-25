@@ -23,7 +23,7 @@ import serial
 import time
 from Status import Status, StatusEnum
     
-def initialize_connection(port='/dev/ttyACM0', baud_rate=38400): 
+def initialize_connection(port='/dev/ttyUSB0', baud_rate=38400): 
     """Initialize serial connection with ESP32.
 
     ESP32間シリアル通信を初期化する。
@@ -45,7 +45,9 @@ def send_command(command, data=None):
         data (str, optional): Data information to send. Defaults to None.
     """
     if data is not None:
-        command += data
+        command = command + data + '\n'
+    else:
+        command = command
     ser.write(command.encode())
     time.sleep(0.1)
     
@@ -77,17 +79,17 @@ def avrcp_commands(command, data=None):
         command (str): "pause", "play", "stop", "title", "artist", "cover"
         data (str, optional): Data to send. Defaults to None.
     """
-    command_int = 0
+    command_int = '0'
     if command == "pause":
-        command_int = 2
+        command_int = '2'
     elif command == "play":
-        command_int = 3
+        command_int = '3'
     elif command == "stop":
-        command_int = 4
+        command_int = '4'
     elif command == "title":
-        command_int = 5
+        command_int = '5'
     elif command == "artist":
-        command_int = 6
+        command_int = '6'
     elif command == "cover":
-        command_int = 7
+        command_int = '7'
     send_command(command_int, data)
