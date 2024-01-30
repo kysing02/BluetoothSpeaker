@@ -109,9 +109,8 @@ def main():
             print('Error: Media Player not found. Retrying...')
         else:
             bluetooth_available = True
-            #print(transport_prop_iface.GetAll('org.bluez.MediaPlayer1'));
-            print(player_iface.Position());
-            #print(player_iface.fas);
+            print(transport_prop_iface.getProperties())
+            print(player_iface.getProperties())
         if not transport_prop_iface:
             print('Error: DBus.Properties iface not found. Retrying...')
             time.sleep(5)
