@@ -63,6 +63,8 @@ cacheAlbum = "No Album"
 
 # Main process
 def main():
+    global bluetooth_available
+    bluetooth_available = False
     # ジェスチャーセンサの代わりにボタンを用いてシミュレーションをする
     # up = Button(UP)
     # down = Button(DOWN)
