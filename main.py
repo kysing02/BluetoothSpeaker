@@ -125,7 +125,7 @@ def main():
 
     # ESP32の方にBluetooth接続完了&準備完了のお知らせをする
     arduino_control.avrcp_commands("datetime", )
-    arduino_control.avrcp_commands("bluetooth", 1)
+    arduino_control.avrcp_commands("bluetooth", '1')
 
     # ジェスチャセンサーを初期化する
     g = gesture()
