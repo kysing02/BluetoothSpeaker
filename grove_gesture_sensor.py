@@ -126,6 +126,7 @@ class gesture:
         print("Paj7620 initialize register finished.")
 
         self.thread = threading.Thread(target=self.inputThread)
+        self.thread.daemon = True
         self.thread.start()
 
     def inputThread(self):

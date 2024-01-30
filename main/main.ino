@@ -319,7 +319,7 @@ void drawClock() {
   int textSizeSmall = 1;
   canvas->setCursor(2, PANEL_RES_Y - 8 * textSizeSmall);
   canvas->setTextSize(textSizeSmall);
-  canvas->setFont(&Org_01);
+  canvas->setFont();
   canvas->setTextColor(myBLUE);
   // for (int i = 0; i < strlen(dayStrJap); ++i) {      
   //   dayStrJap[i] = toupper(dayStrJap[i]);           // Capitalize the weekday string
