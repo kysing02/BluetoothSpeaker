@@ -106,12 +106,12 @@ def main():
                         bus.get_object('org.bluez', path),
                         'org.freedesktop.DBus.Properties')
         if not player_iface:
-            sys.exit('Error: Media Player not found. Retrying...')
+            print('Error: Media Player not found. Retrying...')
             time.sleep(5)
         else:
             bluetooth_available = True
         if not transport_prop_iface:
-            sys.exit('Error: DBus.Properties iface not found. Retrying...')
+            print('Error: DBus.Properties iface not found. Retrying...')
             time.sleep(5)
         else:
             bluetooth_available = True
