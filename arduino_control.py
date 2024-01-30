@@ -5,15 +5,15 @@ ESP32と通信を行うためのプログラム。
 
 ESP32 Commands（ESP32命令）
 0 : None（なし）
-1 : Reserved（予約済み）
+1 : Bluetooth - Connected（接続）/ Disconnected（切断）
 2 : AVRCP - Pause（停止）
 3 : AVRCP - Play（再生）
 4 : AVRCP - Stop（終了）
 5 : AVRCP - Update song title（曲のタイトルを更新する）
 6 : AVRCP - Update song artist（曲の作家名を更新する）
 7 : AVRCP - Update song cover（曲の画像を更新する）
-8 : Bluetooth - Connected（接続）
-9 : Bluetooth - Disconnected（切断）
+8 : System - Set datetime　（日付を設定する）("%x:%H:%M:%S")
+9 : 
 A : Change status CLOCK（ステータス更新 - 時計モード）
 B : Change status WALLPAPER_CLOCK（ステータス更新 - 時計壁紙モード）
 C : Change status MUSIC（ステータス更新 - 音楽モード）
@@ -73,14 +73,16 @@ def change_status(status):
 def avrcp_commands(command, data=None):
     """Update AVRCP playback status.
 
-    AVRCPの音楽あ関する情報を更新する。
+    AVRCPの音楽に関する情報を更新する。
 
     Args:
-        command (str): "pause", "play", "stop", "title", "artist", "cover"
+        command (str): "pause", "play", "stop", "title", "artist", "cover", "bluetooth", "datetime"
         data (str, optional): Data to send. Defaults to None.
     """
     command_int = '0'
-    if command == "pause":
+    if command == "bluetooth":
+        command_int = '1'
+    elif command == "pause":
         command_int = '2'
     elif command == "play":
         command_int = '3'
@@ -92,4 +94,6 @@ def avrcp_commands(command, data=None):
         command_int = '6'
     elif command == "cover":
         command_int = '7'
+    elif command == "datetime":
+        command_int = '8'
     send_command(command_int, data)

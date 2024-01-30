@@ -12,7 +12,7 @@ MatrixPanel_I2S_DMA *dma_display = nullptr;
 GFXcanvas16 *canvas = nullptr;
 
 // Clock
-#include <WiFi.h>
+// #include <WiFi.h>
 #include <TimeLib.h>
 
 // Aurora
@@ -41,14 +41,14 @@ Patterns patterns;
 #define NUM_FRAMES 30
 
 // Wi-Fi
-const char* ssid = "Kys";
-const char* password = "kys20021110";
+// const char* ssid = "Kys";
+// const char* password = "kys20021110";
 
 // Bluetooth connection
 bool bluetooth_connected = false;
 
 // Clock
-const char* ntpServer = "pool.ntp.org";
+// const char* ntpServer = "pool.ntp.org";
 
 // Predefined color
 uint16_t myBLACK = dma_display->color565(0, 0, 0);
@@ -150,12 +150,12 @@ void setup() {
   dma_display->println("DOT.SPEAKER");
   
   // Connect to WiFi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
-  Serial.println("Connected to WiFi");
+  // WiFi.begin(ssid, password);
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(1000);
+  //   Serial.println("Connecting to WiFi...");
+  // }
+  // Serial.println("Connected to WiFi");
 
   while (!bluetooth_connected) {
     delay(1000);
@@ -163,9 +163,9 @@ void setup() {
   }
 
   // Initialize NTP
-  configTime(9 * 3600, 0, ntpServer);
-  setTime(12, 0, 0, 1, 1, 1970);          // set initial time (time before NTP time is get)
-  updateClock();
+  //configTime(9 * 3600, 0, ntpServer);
+  //setTime(12, 0, 0, 1, 1, 1970);          // set initial time (time before NTP time is get)
+  //updateClock();
 
   // Initialize Aurora
   effects.Setup();
@@ -247,16 +247,15 @@ void loop() {
  * @brief Synchronize clock using NTP Time.
  * 
  */
-void updateClock() {
-  // Fetch NTP time
-  time_t currentTime = time(nullptr);
-  struct tm* timeInfo;
-  timeInfo = localtime(&currentTime);
-
-  // Update the internal time
-  setTime(timeInfo->tm_hour, timeInfo->tm_min, timeInfo->tm_sec,
-          timeInfo->tm_mday, timeInfo->tm_mon + 1, timeInfo->tm_year + 1900);
-}
+// void updateClock() {
+//   // Fetch NTP time
+//   time_t currentTime = time(nullptr);
+//   struct tm* timeInfo;
+//   timeInfo = localtime(&currentTime);
+//   // Update the internal time
+//   setTime(timeInfo->tm_hour, timeInfo->tm_min, timeInfo->tm_sec,
+//           timeInfo->tm_mday, timeInfo->tm_mon + 1, timeInfo->tm_year + 1900);
+// }
 
 /**
  * @brief Draw clock on the GFX Canvas. Automatically synchronize NTP time every hour.
@@ -264,10 +263,10 @@ void updateClock() {
  */
 void drawClock() {
   // Synchronize NTP time every seconds
-  if (millis() % (1000) == 0) {
-    canvas->fillScreen(myBLACK);
-    updateClock();
-  }
+  // if (millis() % (1000) == 0) {
+  //   canvas->fillScreen(myBLACK);
+  //   updateClock();
+  // }
 
   // Get current time
   int currentHour = hourFormat12();
@@ -281,6 +280,29 @@ void drawClock() {
   char dayStr[4];
   sprintf(dayStr, "%s", dayShortStr(weekday()));
 
+  String dayStrJap;
+  if (dayStr == "Sun"){
+    dayStrJap = "日";
+  }
+  else if (dayStr == "Mon"){
+    dayStrJap = "月";
+  }
+  else if (dayStr == "Tue"){
+    dayStrJap = "火";
+  }
+  else if (dayStr == "Wed"){
+    dayStrJap = "水";
+  }
+  else if (dayStr == "Thu"){
+    dayStrJap = "木";
+  }
+  else if (dayStr == "Fri"){
+    dayStrJap = "金";
+  }
+  else if (dayStr == "Sat"){
+    dayStrJap = "土";
+  }
+
   // Draw the hour:minutes in the center
   int textSize = 2;
   int xOffsetHour = 1;
@@ -293,16 +315,16 @@ void drawClock() {
   canvas->setTextColor(myWHITE);
   canvas->print(timeStr);
 
-  // Draw the weekday at the bottom right
+  // Draw the weekday at the bottom left
   int textSizeSmall = 1;
   canvas->setCursor(2, PANEL_RES_Y - 8 * textSizeSmall);
   canvas->setTextSize(textSizeSmall);
-  canvas->setFont();
-  canvas->setTextColor(myWHITE);
-  for (int i = 0; i < strlen(dayStr); ++i) {      
-    dayStr[i] = toupper(dayStr[i]);           // Capitalize the weekday string
-  }
-  canvas->print(dayStr);
+  canvas->setFont(&Org_01);
+  canvas->setTextColor(myBLUE);
+  // for (int i = 0; i < strlen(dayStrJap); ++i) {      
+  //   dayStrJap[i] = toupper(dayStrJap[i]);           // Capitalize the weekday string
+  // }
+  canvas->print(dayStrJap);
 }
 
 /**
@@ -351,7 +373,9 @@ void playAuroraPattern() {
 
 /**
  * @brief Draw a line of image directly on the LED Matrix.
- * 
+ * // Parse the received time string (assuming the format is HH:MM:SS)
+  sscanf(receivedData.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
+
  */
 void GIFDraw(GIFDRAW *pDraw)
 {
@@ -823,6 +847,15 @@ void copyBitmapToImageArray() {
     }
 }
 
+void parseTime(String timeinfo) {
+  int month, day, year, hour, min, sec;       //  01/30/24:14:17:25
+
+  // Parse the received time string
+  sscanf(timeinfo.c_str(), "%d/%d/%d:%d:%d:%d", &month, &day, &year, &hour, &min, &sec);
+
+  setTime(hour, min, sec, day, month, year);
+}
+
 /**
  * @brief Check serial inputs and decode commands.
  * 
@@ -847,12 +880,13 @@ void decodeCommands(){
     }
     else if(command == '1'){
       // Bluetooth connection status
-      bt_connection = Serial.readStringUntil('\n');
+      char bt_connection;
+      bt_connection = Serial.readStringUntil('\n')[0];
       if (bt_connection == '0'){
-        bluetooth_connected = false
+        bluetooth_connected = false;
       }
-      elif (bt_connection == '1'){
-        bluetooth_connected = true
+      else if (bt_connection == '1'){
+        bluetooth_connected = true;
       }
     }
     else if(command == '2'){
@@ -902,6 +936,11 @@ void decodeCommands(){
       else {
         convertStringToImage(image_data);
       }
+    }
+    else if(command == '8'){
+      String timeinfo;
+      timeinfo = Serial.readStringUntil('\n');
+      parseTime(timeinfo);
     }
     else {
       Serial.print("Error: unknown command :");

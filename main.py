@@ -31,6 +31,9 @@ import bs4
 # 音量操作モジュール
 import alsaaudio
 
+# ローカル時間モジュール
+import time
+
 # 音量操作
 initial_volume = 30         #初期音量
 
@@ -114,7 +117,16 @@ def main():
     mixer.setvolume(initial_volume)
     
     # Note: このプログラムでは二つのスレッドが同時に実行され、一つ目は入力処理のスレッド、もう一つはAVRCP通信用のスレッド
-     
+
+    # 時間を読み取る
+    timeinfo = time.strftime("%x:%H:%M:%S")
+    print(timeinfo)
+    arduino_control.avrcp_commands("datetime", timeinfo)
+
+    # ESP32の方にBluetooth接続完了&準備完了のお知らせをする
+    arduino_control.avrcp_commands("datetime", )
+    arduino_control.avrcp_commands("bluetooth", 1)
+
     # ジェスチャセンサーを初期化する
     g = gesture()
     g.init()
