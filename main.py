@@ -109,13 +109,23 @@ def main():
             print('Error: Media Player not found. Retrying...')
         else:
             bluetooth_available = True
-            adapter = player_iface.get('org.bluez.MediaPlayer1')
-            print(adapter.get('Status'))
         if not transport_prop_iface:
             print('Error: DBus.Properties iface not found. Retrying...')
             time.sleep(5)
         else:
             bluetooth_available = True
+
+        objects = mgr.GetManagedObjects()
+        for path, ifaces in objects.iteritems():
+            adapter = ifaces.get('org.bluez.MediaPlayer1')
+            if adapter is None:
+                continue
+            print(path)
+            player = bus.get_object('org.bluez',path)
+            BT_Media_iface = dbus.Interface(player, dbus_interface='org.bluez.MediaPlayer1')
+            break
+        track =  adapter.get('Track')
+        print(track)
 
     # AVRCPに音楽再生情報に変更が起こったとき、ラズパイに知らせる
     bus.add_signal_receiver(
