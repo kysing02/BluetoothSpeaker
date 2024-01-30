@@ -49,6 +49,7 @@ def send_command(command, data=None):
     else:
         command = command
     ser.write(command.encode())
+    print("Sent: ", command)
     time.sleep(0.1)
     
 def change_status(status):
