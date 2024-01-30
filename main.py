@@ -109,7 +109,8 @@ def main():
             print('Error: Media Player not found. Retrying...')
         else:
             bluetooth_available = True
-            print(player_iface.get('Status'))
+            adapter = player_iface.get('org.bluez.MediaPlayer1')
+            print(adapter.get('Status'))
         if not transport_prop_iface:
             print('Error: DBus.Properties iface not found. Retrying...')
             time.sleep(5)
