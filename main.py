@@ -109,7 +109,6 @@ def main():
             print('Error: Media Player not found. Retrying...')
         else:
             bluetooth_available = True
-            print(transport_prop_iface.getProperties())
             print(player_iface.getProperties())
         if not transport_prop_iface:
             print('Error: DBus.Properties iface not found. Retrying...')
