@@ -117,12 +117,10 @@ def main():
 
         objects = mgr.GetManagedObjects()
         for path, ifaces in objects.items():
-            adapter = ifaces.get('org.bluez.MediaPlayer1')
+            adapter = ifaces.get('org.freedesktop.DBus.Properties')
             if adapter is None:
                 continue
             print(path)
-            player = bus.get_object('org.bluez',path)
-            BT_Media_iface = dbus.Interface(player, dbus_interface='org.bluez.MediaPlayer1')
             break
         track =  adapter.get('Track')
         print(track)
