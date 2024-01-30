@@ -1,6 +1,5 @@
 // Group 1 - DotSpeaker Project.
 // This is the main process which should include whole functions.
-
 /*--------------------------------MODULES---------------------------------*/
 // LED Matrix 
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
@@ -277,31 +276,34 @@ void drawClock() {
   char timeStr[6];
   sprintf(timeStr, "%02d:%02d", currentHour, currentMinute);
 
-  char dayStr[4];
-  sprintf(dayStr, "%s", dayShortStr(weekday()));
+  int currentDay = day();
+  int currentMonth = month();
 
-  String dayStrJap;
-  if (dayStr == "Sun"){
-    dayStrJap = "日";
-  }
-  else if (dayStr == "Mon"){
-    dayStrJap = "月";
-  }
-  else if (dayStr == "Tue"){
-    dayStrJap = "火";
-  }
-  else if (dayStr == "Wed"){
-    dayStrJap = "水";
-  }
-  else if (dayStr == "Thu"){
-    dayStrJap = "木";
-  }
-  else if (dayStr == "Fri"){
-    dayStrJap = "金";
-  }
-  else if (dayStr == "Sat"){
-    dayStrJap = "土";
-  }
+  char dayStr[25];
+  sprintf(dayStr, "%s %02d/%02d", dayShortStr(weekday()), currentMonth, currentDay);
+
+  // String dayStrJap;
+  // if (dayStr == "Sun"){
+  //   dayStrJap = "日";
+  // }
+  // else if (dayStr == "Mon"){
+  //   dayStrJap = "月";
+  // }
+  // else if (dayStr == "Tue"){
+  //   dayStrJap = "火";
+  // }
+  // else if (dayStr == "Wed"){
+  //   dayStrJap = "水";
+  // }
+  // else if (dayStr == "Thu"){
+  //   dayStrJap = "木";
+  // }
+  // else if (dayStr == "Fri"){
+  //   dayStrJap = "金";
+  // }
+  // else if (dayStr == "Sat"){
+  //   dayStrJap = "土";
+  //}
 
   // Draw the hour:minutes in the center
   int textSize = 2;
@@ -320,11 +322,11 @@ void drawClock() {
   canvas->setCursor(2, PANEL_RES_Y - 8 * textSizeSmall);
   canvas->setTextSize(textSizeSmall);
   canvas->setFont();
-  canvas->setTextColor(myBLUE);
-  // for (int i = 0; i < strlen(dayStrJap); ++i) {      
-  //   dayStrJap[i] = toupper(dayStrJap[i]);           // Capitalize the weekday string
-  // }
-  canvas->print(dayStrJap);
+  canvas->setTextColor(dma_display->color565(221, 240, 226));
+  for (int i = 0; i < strlen(dayStr); ++i) {      
+    dayStr[i] = toupper(dayStr[i]);           // Capitalize the weekday string
+  }
+  canvas->print(dayStr);
 }
 
 /**

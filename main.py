@@ -37,6 +37,9 @@ import time
 # 音量操作
 initial_volume = 30         #初期音量
 
+# Bluetooth状況
+bluetooth_available = False
+
 # 画像検索のためのURLテンプレート
 URL = 'https://www.google.com/search?tbm=isch&q='
 HEADER = {'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
@@ -83,26 +86,33 @@ def main():
     # wave.when_activated = lambda : change_status("wave")
 
     # AVRCPを初期化する
-    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-    bus = dbus.SystemBus()
-    obj = bus.get_object('org.bluez', "/")
-    mgr = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
-    global player_iface, transport_prop_iface
-    player_iface = None
-    transport_prop_iface = None
-    for path, ifaces in mgr.GetManagedObjects().items():
-        if 'org.bluez.MediaPlayer1' in ifaces:
-            player_iface = dbus.Interface(
-                    bus.get_object('org.bluez', path),
-                    'org.bluez.MediaPlayer1')
-        elif 'org.bluez.MediaTransport1' in ifaces:
-            transport_prop_iface = dbus.Interface(
-                    bus.get_object('org.bluez', path),
-                    'org.freedesktop.DBus.Properties')
-    if not player_iface:
-        sys.exit('Error: Media Player not found.')
-    if not transport_prop_iface:
-        sys.exit('Error: DBus.Properties iface not found.')
+    while (bluetooth_available == False):
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        bus = dbus.SystemBus()
+        obj = bus.get_object('org.bluez', "/")
+        mgr = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
+        global player_iface, transport_prop_iface
+        player_iface = None
+        transport_prop_iface = None
+        for path, ifaces in mgr.GetManagedObjects().items():
+            if 'org.bluez.MediaPlayer1' in ifaces:
+                player_iface = dbus.Interface(
+                        bus.get_object('org.bluez', path),
+                        'org.bluez.MediaPlayer1')
+            elif 'org.bluez.MediaTransport1' in ifaces:
+                transport_prop_iface = dbus.Interface(
+                        bus.get_object('org.bluez', path),
+                        'org.freedesktop.DBus.Properties')
+        if not player_iface:
+            sys.exit('Error: Media Player not found. Retrying...')
+            time.sleep(5)
+        else:
+            bluetooth_available = True
+        if not transport_prop_iface:
+            sys.exit('Error: DBus.Properties iface not found. Retrying...')
+            time.sleep(5)
+        else:
+            bluetooth_available = True
 
     # AVRCPに音楽再生情報に変更が起こったとき、ラズパイに知らせる
     bus.add_signal_receiver(
