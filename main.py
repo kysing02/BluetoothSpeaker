@@ -107,10 +107,9 @@ def main():
                         'org.freedesktop.DBus.Properties')
         if not player_iface:
             print('Error: Media Player not found. Retrying...')
-            time.sleep(5)
         else:
             bluetooth_available = True
-            print(player_iface.Status);
+            print(player_iface.Status.Get());
         if not transport_prop_iface:
             print('Error: DBus.Properties iface not found. Retrying...')
             time.sleep(5)
