@@ -110,6 +110,7 @@ def main():
             time.sleep(5)
         else:
             bluetooth_available = True
+            print(player_iface.Status);
         if not transport_prop_iface:
             print('Error: DBus.Properties iface not found. Retrying...')
             time.sleep(5)
