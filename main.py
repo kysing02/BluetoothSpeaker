@@ -116,7 +116,7 @@ def main():
             bluetooth_available = True
 
         objects = mgr.GetManagedObjects()
-        for path, ifaces in objects.iteritems():
+        for path, ifaces in objects.items():
             adapter = ifaces.get('org.bluez.MediaPlayer1')
             if adapter is None:
                 continue
