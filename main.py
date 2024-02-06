@@ -135,7 +135,7 @@ def main():
     
     # 音量操作初期化
     global mixer
-    mixer = alsaaudio.Mixer(control='Master')
+    mixer = alsaaudio.Mixer(control='PCM')
     mixer.setvolume(initial_volume)
     
     # Note: このプログラムでは二つのスレッドが同時に実行され、一つ目は入力処理のスレッド、もう一つはAVRCP通信用のスレッド
