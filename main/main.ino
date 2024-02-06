@@ -39,10 +39,6 @@ Patterns patterns;
 // Morphing
 #define NUM_FRAMES 30
 
-// Wi-Fi
-// const char* ssid = "Kys";
-// const char* password = "kys20021110";
-
 // Bluetooth connection
 bool bluetooth_connected = false;
 
@@ -134,7 +130,7 @@ void setup() {
   // Initialize display
   dma_display = new MatrixPanel_I2S_DMA(mxconfig);
   dma_display->begin();
-  dma_display->setBrightness8(90);        // 0-255
+  dma_display->setBrightness8(255);        // 0-255
   dma_display->clearScreen();
 
   // Initialize canvas
