@@ -154,14 +154,14 @@ def main():
     g.when_activated = lambda x : change_status(x)
     
     # 入力を読み取るためのスレッドを設定する
-    input_thread = threading.Thread(target=debug_read_input)
+    # input_thread = threading.Thread(target=debug_read_input)
 
     # Set the thread as a daemon so it will exit when the main program exits
     # スレッドをdaemonにして、メインプログラムが終了したときに自動的に退出する
-    input_thread.daemon = True
+    # input_thread.daemon = True
 
     # スレッドを開始する
-    input_thread.start()
+    # input_thread.start()
     
     # AVRCPのループを開始する
     GLib.MainLoop().run()
