@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 Raspberry Piの制御メインプログラム。
 システム設計 1班
