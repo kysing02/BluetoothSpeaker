@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 #
 # This is the library for Grove Base Hat which used to connect grove sensors for raspberry pi.
 # We use python module smbus2 instead of smbus.
