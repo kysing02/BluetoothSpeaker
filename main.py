@@ -166,17 +166,17 @@ def main():
     # AVRCPのループを開始する
     GLib.MainLoop().run()
 
-def debug_read_input():
-    """
-    コマンドラインにコマンドを入力して、デバッグを行う。
-    使えるコマンドは、ジェスチャーセンサと同じコマンドである。
+#def debug_read_input():
+    # """
+    # コマンドラインにコマンドを入力して、デバッグを行う。
+    # 使えるコマンドは、ジェスチャーセンサと同じコマンドである。
     
-    コマンド: "left" "right" "up" "down" "clockwise" "anticlockwise" "wave"
-    """
-    while True:
-        print("Enter gesture input: ")
-        keyboardCommand = input()
-        change_status(keyboardCommand)
+    # コマンド: "left" "right" "up" "down" "clockwise" "anticlockwise" "wave"
+    # """
+    # while True:
+    #     print("Enter gesture input: ")
+    #     keyboardCommand = input()
+    #     change_status(keyboardCommand)
   
 def change_status(action):
     """
