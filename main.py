@@ -214,7 +214,7 @@ def weather_update():
         weather = weather_to_japanese(weather)
         temperature = jsondata["main"]["temp"]
         arduino_control.avrcp_commands("weather", weather)
-        arduino_control.avrcp_commands("temperature", temperature)
+        arduino_control.avrcp_commands("temperature", str(int(temperature)))
         time.sleep(3600)
 
 def weather_to_japanese(weather):
