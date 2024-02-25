@@ -36,6 +36,9 @@ Patterns patterns;
 // GIFs
 #include <AnimatedGIF.h>
 
+// Weather
+#include "Dhole_weather_icons32px.h"
+
 /*--------------------------MATRIX PANEL CONFIG---------------------------*/
 #define PANEL_RES_X 64
 #define PANEL_RES_Y 32
@@ -57,6 +60,8 @@ uint16_t myWHITE = dma_display->color565(255, 255, 255);
 uint16_t myRED = dma_display->color565(255, 0, 0);
 uint16_t myGREEN = dma_display->color565(0, 255, 0);
 uint16_t myBLUE = dma_display->color565(0, 0, 255);
+uint16_t myYELLOW = dma_display->color565(255, 255, 0);
+uint16_t myPINK = dma_display->color565(255, 130, 255);
 
 // Aurora
 unsigned long fps = 0, fps_timer;                 // fps (this is NOT a matrix refresh rate!)
@@ -80,7 +85,7 @@ uint8_t *imgData = NULL;
 uint16_t *bitmap = (uint16_t *)malloc(32 * 32 * sizeof(uint16_t));
 String image_data;
 uint16_t *image_array = (uint16_t *)malloc(32 * 32 * sizeof(uint16_t));
-String title = "No Song Played";
+String title = "音楽なし";
 String artist = "N/A";
 
 // Pause and play bitmap array
@@ -118,8 +123,63 @@ bool resetting = false;
 bool currentScrollingSwitch = 0;        // 0 - Scrolling Title, 1 - Scrolling Artist
 
 // Status manager
-enum StatusEnum {SLEEP, CLOCK, WALLPAPER_CLOCK, MUSIC};
+enum StatusEnum {SLEEP, CLOCK, WALLPAPER_CLOCK, MUSIC, WEATHER};
 StatusEnum currentStatus = CLOCK;
+
+// Weather
+//int current_icon = 0;
+//static int num_icons = 22;
+
+static char icon_name[22][30] = { 
+"cloud_moon_bits",
+"cloud_sun_bits",
+"clouds_bits",
+"cloud_wind_moon_bits",
+"cloud_wind_sun_bits",
+"cloud_wind_bits",
+"cloud_bits",
+"lightning_bits",
+"moon_bits",
+"rain0_sun_bits",
+"rain0_bits",
+"rain1_moon_bits",
+"rain1_sun_bits",
+"rain1_bits",
+"rain2_bits",
+"rain_lightning_bits",
+"rain_snow_bits",
+"snow_moon_bits",
+"snow_sun_bits",
+"snow_bits",
+"sun_bits",
+"wind_bits" };
+
+static char *icon_bits[22] = { cloud_moon_bits,
+cloud_sun_bits,
+clouds_bits,
+cloud_wind_moon_bits,
+cloud_wind_sun_bits,
+cloud_wind_bits,
+cloud_bits,
+lightning_bits,
+moon_bits,
+rain0_sun_bits,
+rain0_bits,
+rain1_moon_bits,
+rain1_sun_bits,
+rain1_bits,
+rain2_bits,
+rain_lightning_bits,
+rain_snow_bits,
+snow_moon_bits,
+snow_sun_bits,
+snow_bits,
+sun_bits,
+wind_bits};
+
+String temperature = "0'C";
+String weather = "天気情報なし";
+int weatherIndex = 0;
 
 /*-----------------------------MAIN FUNCTIONS-----------------------------*/
 void setup() {
@@ -238,6 +298,9 @@ void loop() {
   else if (currentStatus == WALLPAPER_CLOCK){
     ShowGIF();
     drawClock();
+  }
+  else if (currentStatus == WEATHER){
+    showWeather();
   }
   dma_display->drawRGBBitmap(0, 0, canvas->getBuffer(), 64, 32);
 }
@@ -894,6 +957,11 @@ void decodeCommands(){
       currentStatus = MUSIC;
       canvas->fillScreen(myBLACK);
     }
+    else if(command == 'D'){
+      // Change status WEATHER
+      currentStatus = WEATHER;
+      canvas->fillScreen(myBLACK);
+    }
     else if(command == '1'){
       // Bluetooth connection status
       char bt_connection;
@@ -958,6 +1026,14 @@ void decodeCommands(){
       timeinfo = Serial.readStringUntil('\n');
       parseTime(timeinfo);
     }
+    else if(command == '9'){
+      weather = Serial.readStringUntil('\n');
+      weatherIndex = weatherToBitmapIndex(weather);
+    }
+    else if(command == '0'){
+      temperature = Serial.readStringUntil('\n');
+      temperature = temperature + "'C";
+    }
     else {
       Serial.print("Error: unknown command :");
       Serial.println(command);
@@ -976,4 +1052,48 @@ int calculateSum(const String& str) {
         }
     }
     return int(sum);
+}
+
+void drawXbm565(int x, int y, int width, int height, const char *xbm, uint16_t color = 0xffff) 
+{
+  if (width % 8 != 0) {
+      width =  ((width / 8) + 1) * 8;
+  }
+    for (int i = 0; i < width * height / 8; i++ ) {
+      unsigned char charColumn = pgm_read_byte(xbm + i);
+      for (int j = 0; j < 8; j++) {
+        int targetX = (i * 8 + j) % width + x;
+        int targetY = (8 * i / (width)) + y;
+        if (bitRead(charColumn, j)) {
+          canvas->drawPixel(targetX, targetY, color);
+        }
+      }
+    }
+}
+
+int weatherToBitmapIndex(String weather){
+  if (weather == "雷雨") return 15;
+  else if (weather == "霧雨") return 11;
+  else if (weather == "雨") return 10;
+  else if (weather == "雪") return 19;
+  else if (weather == "霧") return 5;
+  else if (weather == "晴") return 20;
+  else if (weather == "曇") return 2;
+  else return 0;
+}
+
+void showWeather(){
+  drawXbm565(0,0, 32, 32, icon_bits[weatherIndex]);
+  
+  canvas->setTextSize(1);
+  canvas->setFont(&Org_01);
+  canvas->setTextColor(myYELLOW);
+  canvas->setCursor(33, 12);
+  canvas->println(temperature);
+
+  canvas->setTextSize(1);
+  canvas->setFont(&fontx);
+  canvas->setTextColor(myPINK);
+  canvas->setCursor(33, 16);
+  canvas->println(weather);
 }
