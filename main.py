@@ -34,9 +34,11 @@ import alsaaudio
 
 # ローカル時間モジュール
 import time
+import subprocess
+import sys
 
 # 音量操作
-initial_volume = 30         #初期音量
+initial_volume = 40         #初期音量
 
 # Bluetooth状況
 bluetooth_available = False
@@ -95,7 +97,7 @@ def main():
         obj = bus.get_object('org.bluez', "/")
         mgr = dbus.Interface(obj, 'org.freedesktop.DBus.ObjectManager')
         global player_iface, transport_prop_iface
-        player_iface = None
+        gloplayer_iface = None
         transport_prop_iface = None
         for path, ifaces in mgr.GetManagedObjects().items():
             if 'org.bluez.MediaPlayer1' in ifaces:
@@ -109,12 +111,11 @@ def main():
         if not player_iface:
             print('Error: Media Player not found. Retrying...')
         else:
-            bluetooth_available = True
-        if not transport_prop_iface:
-            print('Error: DBus.Properties iface not found. Retrying...')
-            time.sleep(5)
-        else:
-            bluetooth_available = True
+            if not transport_prop_iface:
+                print('Error: DBus.Properties iface not found. Retrying...')
+                time.sleep(5)
+            else:
+                bluetooth_available = True
 
         objects = mgr.GetManagedObjects()
         for path, ifaces in objects.items():
@@ -125,6 +126,22 @@ def main():
             break
         track =  adapter.get('Track')
         print(track)
+        time.sleep(1)
+    
+    # Retry in case if source code doesn't work
+    try:
+        player_iface.Previous()
+    except:
+        for path, ifaces in mgr.GetManagedObjects().items():
+            if 'org.bluez.MediaPlayer1' in ifaces:
+                player_iface = dbus.Interface(
+                        bus.get_object('org.bluez', path),
+                        'org.bluez.MediaPlayer1')
+            elif 'org.bluez.MediaTransport1' in ifaces:
+                transport_prop_iface = dbus.Interface(
+                        bus.get_object('org.bluez', path),
+                        'org.freedesktop.DBus.Properties')
+    
 
     # AVRCPに音楽再生情報に変更が起こったとき、ラズパイに知らせる
     bus.add_signal_receiver(
@@ -313,9 +330,9 @@ def playback_control(command):
                 'Volume')
         addVol = 0
         if (str == 'vol-up'):
-            addVol = 10
+            addVol = -5
         elif (str == 'vol-down'):
-            addVol = -10
+            addVol = 5
         newVol = clamp(currentVol + addVol, 0 , 127)
         transport_prop_iface.Set(
                 'org.bluez.MediaTransport1',
@@ -328,7 +345,7 @@ def playback_control(command):
             addLocalVol = 5
         elif (str == 'vol-down'):
             addLocalVol = -5
-        newLocalVol = clamp(currentLocalVol + addLocalVol, 0 , 80)
+        newLocalVol = clamp(currentLocalVol + addLocalVol, 0 , 90)
         print("Local vol set:" , newLocalVol)
         mixer.setvolume(newLocalVol)
     return True
@@ -447,8 +464,13 @@ def clamp(n, minn, maxn):
     Returns:
         int: clamped
     """
-    return max(min(maxn, n), minn)
-
+    return max(min(maxn, n), minn)  
+        
 # main()関数を呼び出す
 if __name__ == "__main__":
-    main() 
+    while True:
+        try:
+            main()
+        except Exception as e:
+            print("Error catched: ", e)
+        time.sleep(3)
