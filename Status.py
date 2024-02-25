@@ -19,6 +19,7 @@ class StatusEnum(Enum):
     CLOCK = 1
     WALLPAPER_CLOCK = 2
     MUSIC = 3
+    WEATHER = 4
 
 class Status:
     """
