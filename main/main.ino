@@ -2,13 +2,19 @@
 // This is the main process which should include whole functions.
 /*--------------------------------MODULES---------------------------------*/
 // LED Matrix 
-#include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
-#include <ESP32-VirtualMatrixPanel-I2S-DMA.h>
+#include <ESP32-HUB75-MatrixPanel-I2S-DMA-Humblesoft.h>
+#include <ESP32-VirtualMatrixPanel-I2S-DMA-Humblesoft.h>
 #include <Fonts/Org_01.h>
+
+// Fontx
+#include <Fontx.h>
+#include <fontx/misaki4x8.h>
+#include <fontx/misaki8x8.h>
+RomFontx fontx(misaki4x8,misaki8x8);
 
 // LED Matrix and Canvas
 MatrixPanel_I2S_DMA *dma_display = nullptr;
-GFXcanvas16 *canvas = nullptr;
+GFXcanvas16Humblesoft *canvas = nullptr;
 
 // Clock
 // #include <WiFi.h>
@@ -130,11 +136,11 @@ void setup() {
   // Initialize display
   dma_display = new MatrixPanel_I2S_DMA(mxconfig);
   dma_display->begin();
-  dma_display->setBrightness8(255);        // 0-255
+  dma_display->setBrightness8(100);        // 0-255
   dma_display->clearScreen();
 
   // Initialize canvas
-  canvas = new GFXcanvas16(64, 32);
+  canvas = new GFXcanvas16Humblesoft(64, 32);
   canvas->setTextWrap(false);
 
   // Power on idle screen
@@ -699,12 +705,13 @@ void scrollText(){
       //canvas->fillRect(x_text - 1, y_text - 1, w_text + 2, h_text + 2, myBLACK);
       canvas->fillRect(32, 0, 32, 16, myBLACK);
       
+      canvas->setFont(&fontx);
       canvas->setTextColor(myGREEN);
-      canvas->setCursor(32, 5);
+      canvas->setCursor(32, 1);
       canvas->println(title);
   
       canvas->setTextColor(myBLUE);
-      canvas->setCursor(xPos, 13);
+      canvas->setCursor(xPos, 9);
       canvas->println(artist);
     }
     else {
@@ -714,12 +721,13 @@ void scrollText(){
       //canvas->fillRect(x_text - 1, y_text - 1, w_text + 2, h_text + 2, myBLACK);
       canvas->fillRect(32, 0, 32, 16, myBLACK);
       
+      canvas->setFont(&fontx);
       canvas->setTextColor(myGREEN);
-      canvas->setCursor(xPos, 5);
+      canvas->setCursor(xPos, 1);
       canvas->println(title);
   
       canvas->setTextColor(myBLUE);
-      canvas->setCursor(32, 13);
+      canvas->setCursor(32, 9);
       canvas->println(artist);
     }
   }
@@ -728,24 +736,28 @@ void scrollText(){
     // If scrolling time interval has passed
     if (currentMillis - previousScrollMillis >= scrollDelay){
       previousScrollMillis = currentMillis;
-      canvas->getTextBounds(title, xPos, 5, &x_text, &y_text, &w_text, &h_text);
+      dma_display->getTextBounds(title.c_str(), xPos, 1, &x_text, &y_text, &w_text, &h_text);
+      //w_text = strlen(title.c_str()) * 4;
+      w_text = calculateSum(title);
+      
+      Serial.println(w_text);
       // If there is still text to scroll
       if (xPos >= 32 - (w_text - 32)) { // initialPosition - (textWidth - textBoundaryWidth)
         // Clear the display
-        canvas->fillRect(x_text, y_text, w_text, h_text, myBLACK);
-        canvas->getTextBounds(artist, 32, 13, &x_text, &y_text, &w_text, &h_text);
-        canvas->fillRect(x_text, y_text, w_text, h_text, myBLACK);
+        canvas->fillRect(32, 1, 32, 20, myBLACK);
+        // canvas->getTextBounds(artist, 32, 13, &x_text, &y_text, &w_text, &h_text);
+        // canvas->fillRect(x_text, y_text, w_text, h_text, myBLACK);
 
-        canvas->setFont(&Org_01);
+        canvas->setFont(&fontx);
         canvas->setTextSize(1);
           
         canvas->setTextColor(myGREEN);
         // Display the text at the current position
-        canvas->setCursor(xPos, 5);
+        canvas->setCursor(xPos, 1);
         canvas->println(title);
 
         canvas->setTextColor(myBLUE);
-        canvas->setCursor(32, 13);
+        canvas->setCursor(32, 9);
         canvas->println(artist);
         
         // Move the text to the left for scrolling effect
@@ -764,24 +776,30 @@ void scrollText(){
     // If scrolling time interval has passed
     if (currentMillis - previousScrollMillis >= scrollDelay){
       previousScrollMillis = currentMillis;
-      canvas->getTextBounds(artist, xPos, 13, &x_text, &y_text, &w_text, &h_text);
+      dma_display->getTextBounds(artist.c_str(), xPos, 9, &x_text, &y_text, &w_text, &h_text);
+      //w_text = strlen(artist.c_str()) * 4;
+      w_text = calculateSum(artist);
+      Serial.println(w_text);
       // If there is still text to scroll
       if (xPos >= 32 - (w_text - 32)) { // initialPosition - (textWidth - textBoundaryWidth)
         // Clear the display
-        canvas->fillRect(x_text, y_text, w_text, h_text, myBLACK);
-        canvas->getTextBounds(title, 32, 5, &x_text, &y_text, &w_text, &h_text);
-        canvas->fillRect(x_text, y_text, w_text, h_text, myBLACK);
+        canvas->fillRect(32, 1, 32, 20, myBLACK);
+        dma_display->getTextBounds(title.c_str(), 32, 1, &x_text, &y_text, &w_text, &h_text);
+        //w_text = strlen(title.c_str()) * 4;
+        w_text = calculateSum(title);
+        Serial.println(w_text);
+        //canvas->fillRect(x_text, y_text, w_text, h_text, myBLACK);
 
-        canvas->setFont(&Org_01);
+        canvas->setFont(&fontx);
         canvas->setTextSize(1);
         
         canvas->setTextColor(myBLUE);
         // Display the text at the current position
-        canvas->setCursor(xPos, 13);
+        canvas->setCursor(xPos, 9);
         canvas->println(artist);
   
         canvas->setTextColor(myGREEN);
-        canvas->setCursor(32, 5);
+        canvas->setCursor(32, 1);
         canvas->println(title);
         
         // Move the text to the left for scrolling effect
@@ -945,4 +963,17 @@ void decodeCommands(){
       Serial.println(command);
     }
   }
+}
+
+int calculateSum(const String& str) {
+    float sum = 0;
+    for (int i = 0; i < str.length(); i++) {
+        char ch = str.charAt(i);
+        if (ch & 0x80) { // Non-ASCII characters
+            sum += 2.6667;
+        } else { // ASCII characters
+            sum += 4.0;
+        }
+    }
+    return int(sum);
 }
