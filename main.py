@@ -27,6 +27,7 @@ import threading
 # インターネットから画像を検索してリンクを探すためのライブラリ
 from urllib.parse import urlparse
 import requests
+import json
 import bs4
 
 # 音量操作モジュール
@@ -46,6 +47,12 @@ bluetooth_available = False
 # 画像検索のためのURLテンプレート
 URL = 'https://www.google.com/search?tbm=isch&q='
 HEADER = {'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"}
+
+# 天気予報関連パラメータ
+weather = "None"
+temperature = 0
+weather_url = "https://api.openweathermap.org/data/2.5/weather?q={city_name}&units=metric&appid={API_key}"
+weather_url = weather_url.format(city_name = "Tsubata", API_key = "37fd0c5cb49f4a76f224a7703f07438f")
 
 # ジェスチャーセンサの代わりに用いるPIN設置
 # UP = 17
@@ -180,6 +187,11 @@ def main():
     # スレッドを開始する
     # input_thread.start()
     
+    # 天気予報を１時間ごとに更新する
+    weather_thread = threading.Thread(target=weather_update)
+    weather_thread.daemon = True
+    weather_thread.start()
+
     # AVRCPのループを開始する
     GLib.MainLoop().run()
 
@@ -194,7 +206,34 @@ def main():
     #     print("Enter gesture input: ")
     #     keyboardCommand = input()
     #     change_status(keyboardCommand)
-  
+
+def weather_update():
+    while True:
+        jsondata = requests.get(weather_url).json()
+        weather = jsondata["weather"][0]["main"]
+        weather = weather_to_japanese(weather)
+        temperature = jsondata["main"]["temp"]
+        arduino_control.avrcp_commands("weather", weather)
+        arduino_control.avrcp_commands("temperature", temperature)
+        time.sleep(3600)
+
+def weather_to_japanese(weather):
+    # Thunderstorm, Drizzle, Rain, Snow, Atmosphere, Clear, Clouds
+    if weather == "Thunderstorm":
+        return "雷雨"
+    elif weather == "Drizzle":
+        return "霧雨"
+    elif weather == "Rain":
+        return "雨"
+    elif weather == "Snow":
+        return "雪"
+    elif weather == "Atmosphere":
+        return "霧"
+    elif weather == "Clear":
+        return "晴"
+    elif weather == "Clouds":
+        return "曇"
+
 def change_status(action):
     """
     入力が検出されたとき、入力に応じて処理を行う。
@@ -211,9 +250,17 @@ def change_status(action):
     if current_status == StatusEnum.CLOCK:
         if action == "left":
             arduino_control.change_status(StatusEnum.WALLPAPER_CLOCK)
+        elif action == "right":
+            arduino_control.change_status(StatusEnum.WEATHER)
         elif action == "up":
             arduino_control.change_status(StatusEnum.MUSIC)
-            
+
+    elif current_status == StatusEnum.WEATHER:
+        if action == "left":
+            arduino_control.change_status(StatusEnum.CLOCK)
+        elif action == "up":
+            arduino_control.change_status(StatusEnum.MUSIC)
+
     elif current_status == StatusEnum.WALLPAPER_CLOCK:
         if action == "right":
             arduino_control.change_status(StatusEnum.CLOCK)

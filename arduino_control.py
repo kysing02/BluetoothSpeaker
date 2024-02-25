@@ -17,6 +17,7 @@ ESP32 Commands（ESP32命令）
 A : Change status CLOCK（ステータス更新 - 時計モード）
 B : Change status WALLPAPER_CLOCK（ステータス更新 - 時計壁紙モード）
 C : Change status MUSIC（ステータス更新 - 音楽モード）
+D : Change status WEATHER (ステータス更新 - 天気予報モード)
 """
 
 import serial
@@ -70,6 +71,9 @@ def change_status(status):
         Status.set_persistent_status()
         Status.set_status(StatusEnum.MUSIC)
         send_command("C")
+    elif (status == StatusEnum.WEATHER):
+        Status.set_status(StatusEnum.WEATHER)
+        send_command("D")
 
 def avrcp_commands(command, data=None):
     """Update AVRCP playback status.
@@ -77,10 +81,11 @@ def avrcp_commands(command, data=None):
     AVRCPの音楽に関する情報を更新する。
 
     Args:
-        command (str): "pause", "play", "stop", "title", "artist", "cover", "bluetooth", "datetime"
+        command (str): "pause", "play", "stop", "title", "artist", "cover", "bluetooth", 
+                        "datetime", "weather", "temperature"
         data (str, optional): Data to send. Defaults to None.
     """
-    command_int = '0'
+    command_int = 'X'
     if command == "bluetooth":
         command_int = '1'
     elif command == "pause":
@@ -97,4 +102,8 @@ def avrcp_commands(command, data=None):
         command_int = '7'
     elif command == "datetime":
         command_int = '8'
+    elif command == "weather":
+        command_int = '9'
+    elif command == "temperature":
+        command_int = '0'
     send_command(command_int, data)
