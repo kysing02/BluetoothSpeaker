@@ -175,14 +175,25 @@ public:
 		//Serial.printf("Flushing x, y coord %d, %d\n", x, y);
     		uint16_t _pixel = XY16(x,y);
     		//canvas->drawPixelRGB888( x, y, leds[_pixel].r, leds[_pixel].g, leds[_pixel].b);
-        canvas->drawPixel(x, y, rgbTo565(leds[_pixel].r, leds[_pixel].g, leds[_pixel].b));
+        canvas->drawPixel(x, y, rgb888_to_rgb565(leds[_pixel].r, leds[_pixel].g, leds[_pixel].b));
 	    } // end loop to copy fast led to the dma matrix
 	}
   }
 
   uint16_t rgbTo565(uint8_t r, uint8_t g, uint8_t b) {
+    
     return ((uint16_t)r << 11) | ((uint16_t)g << 5) | b;
   }
+
+  uint16_t rgb888_to_rgb565(uint8_t r, uint8_t g, uint8_t b) {
+    // Extracting the individual color components
+    uint16_t r5 = (r >> 3) & 0x1F; // 5 bits for red
+    uint16_t g6 = (g >> 2) & 0x3F; // 6 bits for green
+    uint16_t b5 = (b >> 3) & 0x1F; // 5 bits for blue
+
+    // Combining the color components into RGB565 format
+    return (r5 << 11) | (g6 << 5) | b5;
+}
   
   // scale the brightness of the screenbuffer down
   void DimAll(byte value)
