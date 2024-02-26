@@ -133,6 +133,22 @@ def main():
         track =  adapter.get('Track')
         print(track)
 
+    # バグ回避
+    try:
+        player_iface.Pause()
+        player_iface.Play()
+    except:
+        global player_iface, transport_prop_iface
+        for path, ifaces in mgr.GetManagedObjects().items():
+            if 'org.bluez.MediaPlayer1' in ifaces:
+                player_iface = dbus.Interface(
+                        bus.get_object('org.bluez', path),
+                        'org.bluez.MediaPlayer1')
+            elif 'org.bluez.MediaTransport1' in ifaces:
+                transport_prop_iface = dbus.Interface(
+                        bus.get_object('org.bluez', path),
+                        'org.freedesktop.DBus.Properties')
+
     # AVRCPに音楽再生情報に変更が起こったとき、ラズパイに知らせる
     bus.add_signal_receiver(
             on_property_changed,
