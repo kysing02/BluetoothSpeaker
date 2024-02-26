@@ -115,8 +115,8 @@ def main():
                         'org.freedesktop.DBus.Properties')
         if not player_iface:
             print('Error: Media Player not found. Retrying...')
-        else:
-            bluetooth_available = True
+        # else:
+        #     bluetooth_available = True
         if not transport_prop_iface:
             print('Error: DBus.Properties iface not found. Retrying...')
             time.sleep(5)
