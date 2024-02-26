@@ -137,7 +137,7 @@ def main():
     try:
         player_iface.Pause()
         player_iface.Play()
-    except:
+    except dbus.exceptions.DBusException as e:
         for path, ifaces in mgr.GetManagedObjects().items():
             if 'org.bluez.MediaPlayer1' in ifaces:
                 player_iface = dbus.Interface(
